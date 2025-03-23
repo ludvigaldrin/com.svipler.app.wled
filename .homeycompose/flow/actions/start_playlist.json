@@ -1,0 +1,39 @@
+{
+  "id": "start_playlist",
+  "title": {
+    "en": "Start Playlist"
+  },
+  "titleFormatted": {
+    "en": "Start playlist with presets [[presets]] for durations [[durations]] repeating [[repeat]] times"
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=wled"
+    },
+    {
+      "name": "presets",
+      "type": "text",
+      "placeholder": {
+        "en": "Preset IDs (comma separated)"
+      }
+    },
+    {
+      "name": "durations",
+      "type": "text",
+      "placeholder": {
+        "en": "Durations in tenths of seconds (comma separated)"
+      }
+    },
+    {
+      "name": "repeat",
+      "type": "number",
+      "placeholder": {
+        "en": "Repeat count (0 for infinite)"
+      },
+      "min": 0,
+      "max": 100
+    }
+  ]
+} 

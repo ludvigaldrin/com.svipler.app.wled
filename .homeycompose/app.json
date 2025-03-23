@@ -1,0 +1,55 @@
+{
+  "id": "com.svipler.athom.wled",
+  "version": "1.0.0",
+  "compatibility": ">=5.0.0",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "WLED Controller"
+  },
+  "description": {
+    "en": "Control your WLED devices with Homey"
+  },
+  "category": [
+    "lights"
+  ],
+  "permissions": [
+    "homey:manager:api"
+  ],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Ludvig Aldrin",
+    "email": "ludvig.aldrin@gmail.com"
+  },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Ludvig Aldrin",
+        "email": "ludvig.aldrin@gmail.com"
+      }
+    ]
+  },
+  "tags": {
+    "en": [
+      "wled",
+      "led",
+      "light",
+      "strip",
+      "rgb"
+    ]
+  },
+  "homepage": "https://github.com/svipler/com.svipler.athom.wled",
+  "support": "https://github.com/svipler/com.svipler.athom.wled/issues",
+  "bugs": {
+    "url": "https://github.com/svipler/com.svipler.athom.wled/issues"
+  },
+  "source": "https://github.com/svipler/com.svipler.athom.wled",
+  "brandColor": "#ff0000",
+  "brandName": "WLED"
+} 

@@ -1,0 +1,12 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Color Palette"
+  },
+  "getable": true,
+  "setable": true,
+  "min": 0,
+  "max": 100,
+  "uiComponent": "picker",
+  "values": []
+} 

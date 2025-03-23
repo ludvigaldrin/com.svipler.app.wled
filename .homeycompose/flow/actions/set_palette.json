@@ -1,0 +1,23 @@
+{
+  "id": "set_palette",
+  "title": {
+    "en": "Set Palette"
+  },
+  "titleFormatted": {
+    "en": "Set palette to [[palette]]"
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=wled"
+    },
+    {
+      "name": "palette",
+      "type": "autocomplete",
+      "placeholder": {
+        "en": "Palette"
+      }
+    }
+  ]
+} 
