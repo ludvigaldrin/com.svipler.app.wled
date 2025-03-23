@@ -1,0 +1,64 @@
+{
+  "pair": {
+    "start": {
+      "title": "Add WLED Device",
+      "subtitle": "Connect your WLED device to Homey",
+      "intro": "Discover WLED devices on your network or add them manually by IP address",
+      "buttons": {
+        "discover": "Discover devices",
+        "manual": "Add manually"
+      }
+    },
+    "manual_entry": {
+      "title": "Add by IP address",
+      "subtitle": "Enter the IP address of your WLED device",
+      "fields": {
+        "ip": {
+          "label": "IP Address",
+          "placeholder": "e.g. 192.168.1.100"
+        }
+      },
+      "buttons": {
+        "connect": "Connect"
+      },
+      "errors": {
+        "empty": "IP address is required",
+        "invalid": "Please enter a valid IP address",
+        "connection": "Could not connect to WLED device"
+      }
+    },
+    "add_manually": {
+      "title": "Adding WLED Device"
+    }
+  },
+  "settings": {
+    "title": "WLED Device Settings",
+    "groups": {
+      "general": "General Settings"
+    },
+    "fields": {
+      "address": {
+        "label": "IP Address",
+        "helper": "The IP address of your WLED device"
+      },
+      "pollInterval": {
+        "label": "Poll Interval (seconds)",
+        "helper": "How often Homey should check the device status"
+      }
+    }
+  },
+  "actions": {
+    "set_effect": {
+      "title": "Set Effect"
+    },
+    "set_palette": {
+      "title": "Set Palette"
+    },
+    "start_playlist": {
+      "title": "Start Playlist"
+    },
+    "set_individual_leds": {
+      "title": "Set Individual LEDs"
+    }
+  }
+}

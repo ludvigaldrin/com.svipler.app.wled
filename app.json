@@ -1,0 +1,290 @@
+{
+  "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
+  "id": "com.svipler.athom.wled",
+  "version": "1.0.0",
+  "compatibility": ">=5.0.0",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "WLED Controller"
+  },
+  "description": {
+    "en": "Control your WLED devices with Homey"
+  },
+  "category": [
+    "lights"
+  ],
+  "permissions": [
+    "homey:manager:api"
+  ],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Ludvig Aldrin",
+    "email": "ludvig.aldrin@gmail.com"
+  },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Ludvig Aldrin",
+        "email": "ludvig.aldrin@gmail.com"
+      }
+    ]
+  },
+  "tags": {
+    "en": [
+      "wled",
+      "led",
+      "light",
+      "strip",
+      "rgb"
+    ]
+  },
+  "homepage": "https://github.com/svipler/com.svipler.athom.wled",
+  "support": "https://github.com/svipler/com.svipler.athom.wled/issues",
+  "bugs": {
+    "url": "https://github.com/svipler/com.svipler.athom.wled/issues"
+  },
+  "source": "https://github.com/svipler/com.svipler.athom.wled",
+  "brandColor": "#ff0000",
+  "brandName": "WLED",
+  "flow": {
+    "actions": [
+      {
+        "id": "set_effect",
+        "title": {
+          "en": "Set Effect"
+        },
+        "titleFormatted": {
+          "en": "Set effect to [[effect]]"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "effect",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Effect"
+            }
+          }
+        ]
+      },
+      {
+        "id": "set_palette",
+        "title": {
+          "en": "Set Palette"
+        },
+        "titleFormatted": {
+          "en": "Set palette to [[palette]]"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "palette",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Palette"
+            }
+          }
+        ]
+      },
+      {
+        "id": "start_playlist",
+        "title": {
+          "en": "Start Playlist"
+        },
+        "titleFormatted": {
+          "en": "Start playlist with presets [[presets]] for durations [[durations]] repeating [[repeat]] times"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "presets",
+            "type": "text",
+            "placeholder": {
+              "en": "Preset IDs (comma separated)"
+            }
+          },
+          {
+            "name": "durations",
+            "type": "text",
+            "placeholder": {
+              "en": "Durations in tenths of seconds (comma separated)"
+            }
+          },
+          {
+            "name": "repeat",
+            "type": "number",
+            "placeholder": {
+              "en": "Repeat count (0 for infinite)"
+            },
+            "min": 0,
+            "max": 100
+          }
+        ]
+      }
+    ]
+  },
+  "drivers": [
+    {
+      "name": {
+        "en": "WLED Device"
+      },
+      "class": "light",
+      "capabilities": [
+        "onoff",
+        "dim",
+        "light_hue",
+        "light_saturation",
+        "wled_effect",
+        "wled_palette"
+      ],
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "discovery": "wled",
+      "images": {
+        "small": "/drivers/wled/assets/images/small.png",
+        "large": "/drivers/wled/assets/images/large.png",
+        "xlarge": "/drivers/wled/assets/images/xlarge.png"
+      },
+      "searchTerms": {
+        "en": [
+          "wled",
+          "led",
+          "light",
+          "strip",
+          "rgb",
+          "lighting",
+          "addressable"
+        ]
+      },
+      "pair": [
+        {
+          "id": "start",
+          "navigation": {
+            "next": "list_devices"
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "next": "add_devices",
+            "prev": "start"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        },
+        {
+          "id": "manual_entry",
+          "navigation": {
+            "next": "add_manually",
+            "prev": "start"
+          }
+        },
+        {
+          "id": "add_manually"
+        }
+      ],
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "General Settings"
+          },
+          "children": [
+            {
+              "id": "address",
+              "type": "text",
+              "label": {
+                "en": "IP Address"
+              },
+              "value": "192.168.1.100"
+            },
+            {
+              "id": "pollInterval",
+              "type": "number",
+              "label": {
+                "en": "Poll Interval (seconds)"
+              },
+              "value": 5,
+              "min": 1,
+              "max": 60
+            }
+          ]
+        }
+      ],
+      "id": "wled"
+    }
+  ],
+  "capabilities": {
+    "wled_effect": {
+      "type": "number",
+      "title": {
+        "en": "Effect"
+      },
+      "getable": true,
+      "setable": true,
+      "min": 0,
+      "max": 100,
+      "uiComponent": "picker",
+      "values": []
+    },
+    "wled_palette": {
+      "type": "number",
+      "title": {
+        "en": "Color Palette"
+      },
+      "getable": true,
+      "setable": true,
+      "min": 0,
+      "max": 100,
+      "uiComponent": "picker",
+      "values": []
+    }
+  },
+  "discovery": {
+    "wled": {
+      "type": "mdns-sd",
+      "mdns-sd": {
+        "name": "http",
+        "protocol": "tcp"
+      },
+      "id": "{{address}}",
+      "conditions": [
+        [
+          {
+            "field": "name",
+            "match": {
+              "type": "regex",
+              "value": "wled-.*"
+            }
+          }
+        ]
+      ]
+    }
+  }
+}

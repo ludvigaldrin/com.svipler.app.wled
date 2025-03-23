@@ -1,0 +1,59 @@
+<style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .buttons {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .button {
+    margin: 10px 0;
+    padding: 15px;
+    background-color: #00adef;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+  }
+  
+  .button:hover {
+    background-color: #0088cc;
+  }
+</style>
+
+<div class="container">
+  <p class="subtitle" data-i18n="pair.start.subtitle">Connect your WLED device to Homey</p>
+  
+  <div class="buttons">
+    <button id="discover-button" class="button" data-i18n="pair.start.buttons.discover">Discover devices</button>
+    <button id="manual-button" class="button" data-i18n="pair.start.buttons.manual">Add manually</button>
+  </div>
+</div>
+
+<script>
+  Homey.setTitle(Homey.__('pair.start.title'));
+  
+  document.getElementById('discover-button').addEventListener('click', function() {
+    Homey.showView('list_devices');
+  });
+  
+  document.getElementById('manual-button').addEventListener('click', function() {
+    Homey.showView('manual_entry');
+  });
+</script> 

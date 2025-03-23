@@ -1,0 +1,131 @@
+<style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .form-group {
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 20px;
+  }
+  
+  .label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .button {
+    padding: 15px;
+    background-color: #00adef;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+  }
+  
+  .button:hover {
+    background-color: #0088cc;
+  }
+  
+  .error {
+    color: red;
+    margin-top: 10px;
+    display: none;
+  }
+</style>
+
+<div class="container">
+  <p class="subtitle" data-i18n="pair.manual_entry.subtitle">Enter the IP address of your WLED device</p>
+  
+  <div class="form-group">
+    <label class="label" for="ip-address" data-i18n="pair.manual_entry.fields.ip.label">IP Address</label>
+    <input id="ip-address" class="input" type="text" placeholder="192.168.1.100" />
+  </div>
+  
+  <div class="form-group">
+    <button id="connect-button" class="button" data-i18n="pair.manual_entry.buttons.connect">Connect</button>
+  </div>
+  
+  <div id="error-message" class="error"></div>
+</div>
+
+<script>
+  Homey.setTitle(Homey.__('pair.manual_entry.title'));
+  
+  const ipAddressInput = document.getElementById('ip-address');
+  const connectButton = document.getElementById('connect-button');
+  const errorMessage = document.getElementById('error-message');
+  
+  // Listen for suggested IP
+  Homey.on('suggested_ip', (baseIp) => {
+    console.log(`Received suggested IP base: ${baseIp}`);
+    if (baseIp && ipAddressInput.value === '') {
+      // Suggest the last octet as 100
+      ipAddressInput.value = `${baseIp}.100`;
+    }
+  });
+  
+  connectButton.addEventListener('click', async () => {
+    const ipAddress = ipAddressInput.value.trim();
+    
+    if (!ipAddress) {
+      showError(Homey.__('pair.manual_entry.errors.empty'));
+      return;
+    }
+    
+    // Simple IP validation regex
+    const ipRegex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    
+    if (!ipRegex.test(ipAddress)) {
+      showError(Homey.__('pair.manual_entry.errors.invalid'));
+      return;
+    }
+    
+    try {
+      connectButton.disabled = true;
+      connectButton.innerHTML = `${Homey.__('pair.manual_entry.buttons.connect')}...`;
+      
+      console.log(`Sending manual_entry with IP: ${ipAddress}`);
+      const result = await Homey.emit('manual_entry', { ip: ipAddress });
+      console.log('Manual entry result:', result);
+      
+      if (result && result.success) {
+        console.log('Success! Navigating to add_manually view');
+        Homey.showView('add_manually');
+      } else {
+        showError(result.message || Homey.__('pair.manual_entry.errors.connection'));
+      }
+    } catch (error) {
+      console.error('Error during manual entry:', error);
+      showError(Homey.__('pair.manual_entry.errors.connection'));
+    } finally {
+      connectButton.disabled = false;
+      connectButton.innerHTML = Homey.__('pair.manual_entry.buttons.connect');
+    }
+  });
+  
+  function showError(message) {
+    errorMessage.innerText = message;
+    errorMessage.style.display = 'block';
+  }
+</script> 
