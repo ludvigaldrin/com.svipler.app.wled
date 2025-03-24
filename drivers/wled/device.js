@@ -372,7 +372,7 @@ class WLEDDevice extends Homey.Device {
             try {
               // Get current effects options
               const effectOptions = await this.getCapabilityOptions('wled_effect');
-              const effectName = effectOptions?.values?.find(e => e.id === effectId)?.name || `Effect ${effectId}`;
+              const effectName = effectOptions?.values?.find(e => e.id === effectId)?.title?.en || `Effect ${effectId}`;
               this.log(`Current effect: ID=${effectId}, Name=${effectName}`);
             } catch (error) {
               this.error(`Error getting effect name: ${error.message}`);
@@ -395,7 +395,7 @@ class WLEDDevice extends Homey.Device {
             try {
               // Get current palette options
               const paletteOptions = await this.getCapabilityOptions('wled_palette');
-              const paletteName = paletteOptions?.values?.find(p => p.id === paletteId)?.name || `Palette ${paletteId}`;
+              const paletteName = paletteOptions?.values?.find(p => p.id === paletteId)?.title?.en || `Palette ${paletteId}`;
               this.log(`Current palette: ID=${paletteId}, Name=${paletteName}`);
             } catch (error) {
               this.error(`Error getting palette name: ${error.message}`);
@@ -528,10 +528,12 @@ class WLEDDevice extends Homey.Device {
   
   async _updateEffectsCapability(effects) {
     try {
-      // Convert to format expected by capability options
+      // Convert to format expected by capability options - note: uses 'title' not 'name'
       const effectOptions = effects.map((name, id) => ({
         id: String(id),
-        name: name || `Effect ${id}`
+        title: {
+          en: name || `Effect ${id}`
+        }
       }));
       
       this.log(`Updating effects capability with ${effectOptions.length} options`);
@@ -554,10 +556,12 @@ class WLEDDevice extends Homey.Device {
   
   async _updatePalettesCapability(palettes) {
     try {
-      // Convert to format expected by capability options
+      // Convert to format expected by capability options - note: uses 'title' not 'name'
       const paletteOptions = palettes.map((name, id) => ({
         id: String(id),
-        name: name || `Palette ${id}`
+        title: {
+          en: name || `Palette ${id}`
+        }
       }));
       
       this.log(`Updating palettes capability with ${paletteOptions.length} options`);
