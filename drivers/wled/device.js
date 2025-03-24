@@ -46,12 +46,8 @@ class WLEDDevice extends Homey.Device {
       // Set up regular polling
       this.pollTimer = this.homey.setInterval(() => this.updateDeviceState(), this.pollingInterval);
       
-      // Register capability listeners
-      this.registerCapabilityListener('onoff', this.onOffCapabilityListener.bind(this));
-      this.registerCapabilityListener('dim', this.dimCapabilityListener.bind(this));
-      this.registerMultipleCapabilityListener(['light_hue', 'light_saturation'], this.colorCapabilityListener.bind(this));
-      this.registerCapabilityListener('wled_effect', this.effectCapabilityListener.bind(this));
-      this.registerCapabilityListener('wled_palette', this.paletteCapabilityListener.bind(this));
+      // Register all capability listeners
+      this.registerCapabilityListeners();
       
       // Initialize effects and palettes for selection after a short delay
       setTimeout(() => {
@@ -66,181 +62,183 @@ class WLEDDevice extends Homey.Device {
     }
   }
   
-  // Effect capability listener
-  async effectCapabilityListener(value) {
-    try {
-      this.log(`Setting effect: ${value}`);
-      
-      // Ensure API client is available
-      const settings = this.getSettings();
-      const ipAddress = settings.ip || settings.address;
-      if (!ipAddress) {
-        throw new Error('No IP address available');
+  // Register all capability listeners
+  registerCapabilityListeners() {
+    // On/off capability
+    this.registerCapabilityListener('onoff', async (value) => {
+      try {
+        const settings = this.getSettings();
+        const ipAddress = settings.ip || settings.address;
+        
+        if (!ipAddress) {
+          throw new Error('No IP address configured');
+        }
+        
+        // Create fresh client for this request
+        const apiClient = axios.create({
+          baseURL: `http://${ipAddress}`,
+          timeout: 5000,
+        });
+        
+        // Set on/off state
+        await apiClient.post('/json/state', { on: value });
+        
+        return true;
+      } catch (error) {
+        this.error(`Error setting on/off: ${error.message}`);
+        throw error;
       }
-      
-      // Recreate client to ensure fresh connection
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
-      const effectId = parseInt(value);
-      if (isNaN(effectId) || effectId < 0 || effectId > this.maxEffectId) {
-        throw new Error(`Invalid effect ID: ${value}`);
+    });
+    
+    // Dimmer capability
+    this.registerCapabilityListener('dim', async (value) => {
+      try {
+        const settings = this.getSettings();
+        const ipAddress = settings.ip || settings.address;
+        
+        if (!ipAddress) {
+          throw new Error('No IP address configured');
+        }
+        
+        // Create fresh client for this request
+        const apiClient = axios.create({
+          baseURL: `http://${ipAddress}`,
+          timeout: 5000,
+        });
+        
+        // Convert 0-1 to 0-255 brightness
+        const brightness = Math.round(value * 255);
+        
+        // Set brightness
+        await apiClient.post('/json/state', { bri: brightness });
+        
+        return true;
+      } catch (error) {
+        this.error(`Error setting brightness: ${error.message}`);
+        throw error;
       }
-      
-      await apiClient.post('/json/state', {
-        seg: [{
-          fx: effectId
-        }]
-      });
-      
-      this.log(`Effect ${value} set successfully`);
-      return true;
-    } catch (error) {
-      this.error(`Error setting effect: ${error.message || error}`);
-      throw error;
-    }
-  }
-  
-  // Palette capability listener
-  async paletteCapabilityListener(value) {
-    try {
-      this.log(`Setting palette: ${value}`);
-      
-      // Ensure API client is available
-      const settings = this.getSettings();
-      const ipAddress = settings.ip || settings.address;
-      if (!ipAddress) {
-        throw new Error('No IP address available');
+    });
+    
+    // Color capabilities
+    this.registerMultipleCapabilityListener(['light_hue', 'light_saturation'], async (valueObj) => {
+      try {
+        const settings = this.getSettings();
+        const ipAddress = settings.ip || settings.address;
+        
+        if (!ipAddress) {
+          throw new Error('No IP address configured');
+        }
+        
+        // Create fresh client for this request
+        const apiClient = axios.create({
+          baseURL: `http://${ipAddress}`,
+          timeout: 5000,
+        });
+        
+        // Get current values if not changed
+        const hue = valueObj.light_hue !== undefined ? valueObj.light_hue : await this.getCapabilityValue('light_hue');
+        const saturation = valueObj.light_saturation !== undefined ? valueObj.light_saturation : await this.getCapabilityValue('light_saturation');
+        
+        // Convert HSV to RGB
+        const rgb = this._hsvToRgb(hue, saturation, 1);
+        
+        // Set color for first segment
+        await apiClient.post('/json/state', {
+          seg: [
+            {
+              col: [
+                [rgb.r, rgb.g, rgb.b]
+              ]
+            }
+          ]
+        });
+        
+        return true;
+      } catch (error) {
+        this.error(`Error setting color: ${error.message}`);
+        throw error;
       }
-      
-      // Recreate client to ensure fresh connection
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
-      const paletteId = parseInt(value);
-      if (isNaN(paletteId) || paletteId < 0 || paletteId > this.maxPaletteId) {
-        throw new Error(`Invalid palette ID: ${value}`);
+    }, 500);
+    
+    // Effect capability
+    this.registerCapabilityListener('wled_effect', async (value) => {
+      try {
+        const settings = this.getSettings();
+        const ipAddress = settings.ip || settings.address;
+        
+        if (!ipAddress) {
+          throw new Error('No IP address configured');
+        }
+        
+        // Create fresh client for this request
+        const apiClient = axios.create({
+          baseURL: `http://${ipAddress}`,
+          timeout: 5000,
+        });
+        
+        // Convert string ID to number
+        const effectId = parseInt(value, 10);
+        
+        // Check if effect ID is valid
+        if (isNaN(effectId) || effectId < 0 || effectId > this.maxEffectId) {
+          throw new Error(`Invalid effect ID: ${value}`);
+        }
+        
+        // Set effect for first segment
+        await apiClient.post('/json/state', {
+          seg: [
+            {
+              fx: effectId
+            }
+          ]
+        });
+        
+        return true;
+      } catch (error) {
+        this.error(`Error setting effect: ${error.message}`);
+        throw error;
       }
-      
-      await apiClient.post('/json/state', {
-        seg: [{
-          pal: paletteId
-        }]
-      });
-      
-      this.log(`Palette ${value} set successfully`);
-      return true;
-    } catch (error) {
-      this.error(`Error setting palette: ${error.message || error}`);
-      throw error;
-    }
-  }
-  
-  // On/off capability listener
-  async onOffCapabilityListener(value) {
-    try {
-      this.log(`Setting onoff: ${value}`);
-      
-      // Ensure API client is available
-      const settings = this.getSettings();
-      const ipAddress = settings.ip || settings.address;
-      if (!ipAddress) {
-        throw new Error('No IP address available');
+    });
+    
+    // Palette capability
+    this.registerCapabilityListener('wled_palette', async (value) => {
+      try {
+        const settings = this.getSettings();
+        const ipAddress = settings.ip || settings.address;
+        
+        if (!ipAddress) {
+          throw new Error('No IP address configured');
+        }
+        
+        // Create fresh client for this request
+        const apiClient = axios.create({
+          baseURL: `http://${ipAddress}`,
+          timeout: 5000,
+        });
+        
+        // Convert string ID to number
+        const paletteId = parseInt(value, 10);
+        
+        // Check if palette ID is valid
+        if (isNaN(paletteId) || paletteId < 0 || paletteId > this.maxPaletteId) {
+          throw new Error(`Invalid palette ID: ${value}`);
+        }
+        
+        // Set palette for first segment
+        await apiClient.post('/json/state', {
+          seg: [
+            {
+              pal: paletteId
+            }
+          ]
+        });
+        
+        return true;
+      } catch (error) {
+        this.error(`Error setting palette: ${error.message}`);
+        throw error;
       }
-      
-      // Recreate client to ensure fresh connection
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
-      await apiClient.post('/json/state', { on: value });
-      
-      this.log(`On/off set to ${value} successfully`);
-      return true;
-    } catch (error) {
-      this.error(`Error setting on/off: ${error.message || error}`);
-      throw error;
-    }
-  }
-  
-  // Dimmer capability listener
-  async dimCapabilityListener(value) {
-    try {
-      this.log(`Setting dim: ${value}`);
-      
-      // Ensure API client is available
-      const settings = this.getSettings();
-      const ipAddress = settings.ip || settings.address;
-      if (!ipAddress) {
-        throw new Error('No IP address available');
-      }
-      
-      // Recreate client to ensure fresh connection
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
-      const brightness = Math.round(value * 255);
-      await apiClient.post('/json/state', { bri: brightness });
-      
-      this.log(`Brightness set to ${brightness} successfully`);
-      return true;
-    } catch (error) {
-      this.error(`Error setting brightness: ${error.message || error}`);
-      throw error;
-    }
-  }
-  
-  // Color capability listener
-  async colorCapabilityListener(values, opts) {
-    try {
-      // Handle both hue and saturation in one method
-      let hue = this.getCapabilityValue('light_hue');
-      let saturation = this.getCapabilityValue('light_saturation');
-      
-      // Update with the values that changed
-      if (values.light_hue !== undefined) {
-        hue = values.light_hue;
-      }
-      if (values.light_saturation !== undefined) {
-        saturation = values.light_saturation;
-      }
-      
-      this.log(`Setting color - hue: ${hue}, saturation: ${saturation}`);
-      
-      // Ensure API client is available
-      const settings = this.getSettings();
-      const ipAddress = settings.ip || settings.address;
-      if (!ipAddress) {
-        throw new Error('No IP address available');
-      }
-      
-      // Recreate client to ensure fresh connection
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
-      // Convert HSV to RGB
-      const rgb = this._hsvToRgb(hue, saturation, 1);
-      
-      // Update the segment color
-      await apiClient.post('/json/state', {
-        seg: [{ col: [[rgb.r, rgb.g, rgb.b]] }]
-      });
-      
-      this.log(`Color set successfully to RGB(${rgb.r}, ${rgb.g}, ${rgb.b})`);
-      return true;
-    } catch (error) {
-      this.error(`Error setting color: ${error.message || error}`);
-      throw error;
-    }
+    });
   }
   
   async getEffectsList(query = '') {
@@ -325,7 +323,7 @@ class WLEDDevice extends Homey.Device {
       });
       
       // Get state from WLED API
-      this.log(`Polling device state from ${ipAddress}`);
+      // Reduce polling log spam
       const response = await apiClient.get('/json/state');
       
       if (!response || !response.data) {
@@ -338,7 +336,7 @@ class WLEDDevice extends Homey.Device {
       this.setAvailable();
       
       const state = response.data;
-      this.log(`Received state: on=${state.on}, brightness=${state.bri || 'unknown'}`);
+      // Reduce state logging spam
       
       // Update device capabilities
       await this.setCapabilityValue('onoff', !!state.on).catch(this.error);
@@ -362,22 +360,11 @@ class WLEDDevice extends Homey.Device {
         // Effect
         if (segment.fx !== undefined) {
           const effectId = String(segment.fx);
-          this.log(`Current effect ID: ${effectId}`);
           
           if (segment.fx < 0 || segment.fx > this.maxEffectId) {
             this.log(`Effect ID ${effectId} out of range (max: ${this.maxEffectId}), setting to 0`);
             await this.setCapabilityValue('wled_effect', "0").catch(this.error);
           } else {
-            // Try to get the effect name for display
-            try {
-              // Get current effects options
-              const effectOptions = await this.getCapabilityOptions('wled_effect');
-              const effectName = effectOptions?.values?.find(e => e.id === effectId)?.title?.en || `Effect ${effectId}`;
-              this.log(`Current effect: ID=${effectId}, Name=${effectName}`);
-            } catch (error) {
-              this.error(`Error getting effect name: ${error.message}`);
-            }
-            
             await this.setCapabilityValue('wled_effect', effectId).catch(this.error);
           }
         }
@@ -385,22 +372,11 @@ class WLEDDevice extends Homey.Device {
         // Palette
         if (segment.pal !== undefined) {
           const paletteId = String(segment.pal);
-          this.log(`Current palette ID: ${paletteId}`);
           
           if (segment.pal < 0 || segment.pal > this.maxPaletteId) {
             this.log(`Palette ID ${paletteId} out of range (max: ${this.maxPaletteId}), setting to 0`);
             await this.setCapabilityValue('wled_palette', "0").catch(this.error);
           } else {
-            // Try to get the palette name for display
-            try {
-              // Get current palette options
-              const paletteOptions = await this.getCapabilityOptions('wled_palette');
-              const paletteName = paletteOptions?.values?.find(p => p.id === paletteId)?.title?.en || `Palette ${paletteId}`;
-              this.log(`Current palette: ID=${paletteId}, Name=${paletteName}`);
-            } catch (error) {
-              this.error(`Error getting palette name: ${error.message}`);
-            }
-            
             await this.setCapabilityValue('wled_palette', paletteId).catch(this.error);
           }
         }
@@ -408,9 +384,6 @@ class WLEDDevice extends Homey.Device {
       
       // Update last state time
       this.lastStateUpdate = Date.now();
-      
-      // Log successful update
-      this.log('Device state updated successfully');
       
       // If we haven't fetched effects and palettes yet, do it now
       if (!this.effectsAndPalettesFetched) {
@@ -547,19 +520,12 @@ class WLEDDevice extends Homey.Device {
       // Remove the temporary originalName property
       const cleanEffectOptions = effectOptions.map(({id, title}) => ({id, title}));
       
-      this.log(`Updating effects capability with ${cleanEffectOptions.length} sorted options`);
-      
-      // Log a few sample effects to debug
-      if (cleanEffectOptions.length > 0) {
-        this.log(`Sample effects (sorted): ${JSON.stringify(cleanEffectOptions.slice(0, 3))}`);
-      }
+      this.log(`Updating ${cleanEffectOptions.length} effects`);
       
       // Update the capability options
       await this.setCapabilityOptions('wled_effect', {
         values: cleanEffectOptions
       });
-      
-      this.log(`Updated effects capability with ${cleanEffectOptions.length} options`);
     } catch (error) {
       this.error('Error updating effects capability:', error);
     }
@@ -586,19 +552,12 @@ class WLEDDevice extends Homey.Device {
       // Remove the temporary originalName property
       const cleanPaletteOptions = paletteOptions.map(({id, title}) => ({id, title}));
       
-      this.log(`Updating palettes capability with ${cleanPaletteOptions.length} sorted options`);
-      
-      // Log a few sample palettes to debug
-      if (cleanPaletteOptions.length > 0) {
-        this.log(`Sample palettes (sorted): ${JSON.stringify(cleanPaletteOptions.slice(0, 3))}`);
-      }
+      this.log(`Updating ${cleanPaletteOptions.length} palettes`);
       
       // Update the capability options
       await this.setCapabilityOptions('wled_palette', {
         values: cleanPaletteOptions
       });
-      
-      this.log(`Updated palettes capability with ${cleanPaletteOptions.length} options`);
     } catch (error) {
       this.error('Error updating palettes capability:', error);
     }

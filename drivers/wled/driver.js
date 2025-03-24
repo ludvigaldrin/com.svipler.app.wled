@@ -35,33 +35,29 @@ class WLEDDriver extends Homey.Driver {
 
   // Handle device discovery
   onDiscoveryResult(discoveryResult) {
-    this.log('Discovery result', discoveryResult.name + ' ' + discoveryResult.address);
     // Store results for pairing
     this.discoveryResults[discoveryResult.id] = discoveryResult;
   }
 
   // Called when a discovery result is added
   onDiscoveryAvailable(discoveryResult) {
-    this.log('Discovery available:', discoveryResult.name);
+    // Store discovery result
   }
 
   // Called when a discovery result address changes
   onDiscoveryAddressChanged(discoveryResult) {
-    this.log('Discovery address changed:', discoveryResult.name);
     const id = discoveryResult.id;
     this.discoveryResults[id] = discoveryResult;
   }
 
   // Called when a discovery result's last seen timestamp changes
   onDiscoveryLastSeenChanged(discoveryResult) {
-    this.log('Discovery last seen changed:', discoveryResult.name);
+    // Update timestamp
   }
   
   // Helper method to get device info from API
   async getDeviceInfo(ip) {
     try {
-      this.log(`Getting device info from IP: ${ip}`);
-      
       // Create HTTP client for this IP
       const apiClient = axios.create({
         baseURL: `http://${ip}`,
@@ -71,9 +67,6 @@ class WLEDDriver extends Homey.Driver {
       // Get device info from WLED API
       const response = await apiClient.get('/json/info');
       const info = response.data;
-      
-      // Log the complete response
-      this.log('WLED API Response:', JSON.stringify(info, null, 2));
       
       // Extract useful information from the API response
       
@@ -116,8 +109,6 @@ class WLEDDriver extends Homey.Driver {
         }
       };
       
-      this.log(`Generated device data:`, JSON.stringify(deviceData, null, 2));
-      
       return deviceData;
     } catch (error) {
       this.error(`Error getting device info: ${error.message}`);
@@ -126,11 +117,6 @@ class WLEDDriver extends Homey.Driver {
   }
 
   async onPair(session) {
-    this.log('WLED Driver: Starting pairing');
-
-    // We still need to keep discoveryResults for listing devices
-    // But we'll clear it when actually creating devices
-    
     // Track view state
     let activeView = '';
     let manualDevice = null;
@@ -164,7 +150,6 @@ class WLEDDriver extends Homey.Driver {
     session.setHandler('list_devices', async () => {
       // Get current discovered devices
       const discoveryResults = Object.values(this.discoveryResults || {});
-      this.log(`Found ${discoveryResults.length} devices via discovery`);
       
       const devices = [];
       
@@ -181,7 +166,6 @@ class WLEDDriver extends Homey.Driver {
         }
       }
       
-      this.log(`Returning ${devices.length} devices for listing`);
       return devices;
     });
 
@@ -189,18 +173,15 @@ class WLEDDriver extends Homey.Driver {
     session.setHandler('createDevice', async (device) => {
       // Only return the manual device if we have one and we're in manual entry
       if (activeView === 'manual_entry' && manualDevice) {
-        this.log(`Creating manual device: ${manualDevice.name}`);
         return manualDevice;
       }
       
       // Return the selected device for discovery if we're in discovery view
       if (activeView === 'list_devices' && device && device.data && device.data.id) {
-        this.log(`Creating discovery device: ${device.name}`);
         return device;
       }
       
       // For any other case, return the device parameter
-      this.log(`Creating device from parameter: ${device?.name || 'unknown'}`);
       return device;
     });
   }

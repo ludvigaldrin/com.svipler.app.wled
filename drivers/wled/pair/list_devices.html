@@ -14,30 +14,68 @@
   
   .device-list {
     margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
   }
   
   .device-item {
+    display: flex;
+    flex-direction: column;
+    height: 150px;
     padding: 15px;
-    margin-bottom: 10px;
     background-color: #f5f5f5;
-    border-radius: 4px;
-    border-left: 4px solid transparent;
+    border-radius: 8px;
+    border: 2px solid transparent;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
   }
   
   .device-item.selected {
     background-color: rgba(0, 192, 242, 0.1);
-    border-left: 4px solid #00C0F2;
+    border: 2px solid #00C0F2;
+  }
+  
+  .device-icon {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 32px;
+    height: 32px;
   }
   
   .device-name {
     font-weight: bold;
-    margin-bottom: 5px;
+    margin-top: 45px;
+    text-align: center;
+    font-size: 14px;
+    word-break: break-word;
   }
   
   .device-ip {
     color: #666;
-    font-size: 14px;
+    font-size: 12px;
+    margin-top: 5px;
+    text-align: center;
+  }
+  
+  .check-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    background-color: #00C0F2;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+  
+  .device-item.selected .check-icon {
+    display: flex;
   }
   
   .no-devices {
@@ -45,6 +83,7 @@
     padding: 20px;
     color: #666;
     font-style: italic;
+    grid-column: 1 / -1;
   }
   
   .manual-button {
@@ -80,7 +119,7 @@
 </style>
 
 <div class="container">
-  <div class="title">Select a WLED Device</div>
+  <div class="title">Select WLED Device</div>
   
   <div id="device-list" class="device-list">
     <!-- Devices will be added here dynamically -->
@@ -95,16 +134,16 @@
 <script>
   // Helper to log to Homey
   function logToHomey(message) {
-    // Log to console as well for debugging
-    console.log(message);
-    
-    // Send log to Homey driver
-    Homey.emit('log', `[LIST DEVICES] ${message}`)
-      .catch(err => console.error('Error logging to Homey:', err));
+    // Only log important actions, not routine operations
+    if (message.includes('ERROR') || message.includes('Device added') || message.includes('Going to')) {
+      // Send log to Homey driver
+      Homey.emit('log', `[LIST DEVICES] ${message}`)
+        .catch(err => console.error('Error logging to Homey:', err));
+    }
   }
   
-  // Debug logging
-  logToHomey('LIST DEVICES PAGE LOADED - Debug v1.0.4');
+  // Debug logging - only log page load once
+  logToHomey('LIST DEVICES PAGE LOADED');
   
   // Store selected device
   let selectedDevice = null;
@@ -139,6 +178,23 @@
       deviceItem.dataset.index = index;
       deviceItem.dataset.deviceJson = JSON.stringify(device);
       
+      // Add icon for WLED
+      const deviceIcon = document.createElement('div');
+      deviceIcon.className = 'device-icon';
+      deviceIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="4" y="12" width="24" height="8" rx="4" ry="4" fill="#333"/>
+        <circle cx="9" cy="16" r="2" fill="white"/>
+        <circle cx="16" cy="16" r="2" fill="white"/>
+        <circle cx="23" cy="16" r="2" fill="white"/>
+      </svg>`;
+      
+      // Add check icon 
+      const checkIcon = document.createElement('div');
+      checkIcon.className = 'check-icon';
+      checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+        <path fill="white" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+      </svg>`;
+      
       const deviceName = document.createElement('div');
       deviceName.className = 'device-name';
       deviceName.textContent = device.name;
@@ -147,6 +203,8 @@
       deviceIp.className = 'device-ip';
       deviceIp.textContent = device.settings.address;
       
+      deviceItem.appendChild(deviceIcon);
+      deviceItem.appendChild(checkIcon);
       deviceItem.appendChild(deviceName);
       deviceItem.appendChild(deviceIp);
       deviceListElement.appendChild(deviceItem);
