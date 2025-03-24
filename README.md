@@ -82,7 +82,7 @@ This app adds several flow cards to Homey:
 
 ## Support
 
-- Issues and feature requests: [GitHub Issues](https://github.com/svipler/com.svipler.athom.wled/issues)
+- Issues and feature requests: [GitHub Issues](https://github.com/svipler/com.svipler.app.wled/issues)
 - For questions: [Homey Community](https://community.homey.app)
 
 ## Credits

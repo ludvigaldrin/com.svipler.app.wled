@@ -18,7 +18,7 @@ class WLEDDriver extends Homey.Driver {
       // Listen for new discovery results
       this.discoveryStrategy.on('result', this.onDiscoveryResult.bind(this));
 
-      // Process existing discovery results (correctly iterate over object)
+      // Process existing discovery results
       const currentResults = this.discoveryStrategy.getDiscoveryResults();
       this.log('Initial discovery results:', Object.keys(currentResults).length);
       for (const discoveryResult of Object.values(currentResults)) {
@@ -36,149 +36,254 @@ class WLEDDriver extends Homey.Driver {
   // Handle device discovery
   onDiscoveryResult(discoveryResult) {
     this.log('Discovery result', discoveryResult.name + ' ' + discoveryResult.address);
-
     // Store results for pairing
     this.discoveryResults[discoveryResult.id] = discoveryResult;
   }
 
-  // This method is called when a discovery result is added
+  // Called when a discovery result is added
   onDiscoveryAvailable(discoveryResult) {
-    this.log('Discovery available:', discoveryResult);
-    // We already store it in onDiscoveryResult
+    this.log('Discovery available:', discoveryResult.name);
   }
 
-  // This method is called when a discovery result address changes
+  // Called when a discovery result address changes
   onDiscoveryAddressChanged(discoveryResult) {
-    this.log('Discovery address changed:', discoveryResult);
-    // Update our stored entry
+    this.log('Discovery address changed:', discoveryResult.name);
     const id = discoveryResult.id;
     this.discoveryResults[id] = discoveryResult;
   }
 
-  // This method is called when a discovery result's last seen timestamp changes
+  // Called when a discovery result's last seen timestamp changes
   onDiscoveryLastSeenChanged(discoveryResult) {
-    // Just log it, no action needed
-    this.log('Discovery last seen changed:', discoveryResult);
+    this.log('Discovery last seen changed:', discoveryResult.name);
+  }
+  
+  // Helper method to get device info from API
+  async getDeviceInfo(ip) {
+    try {
+      this.log(`Getting device info from IP: ${ip}`);
+      
+      // Create HTTP client for this IP
+      const httpClient = new HttpClient({
+        baseURL: `http://${ip}`,
+        timeout: 5000
+      });
+      
+      // Get device info from WLED API
+      const info = await httpClient.get('/json/info');
+      
+      // Log the complete response
+      this.log('WLED API Response:', JSON.stringify(info, null, 2));
+      
+      // Extract useful information from the API response
+      
+      // Use the custom name if it exists, or generate a friendly name based on host/mac
+      let deviceName = 'WLED';
+      if (info.name && info.name !== 'WLED') {
+        // Use custom name if it's been changed from default
+        deviceName = info.name;
+      } else if (info.host) {
+        // Use hostname if available
+        deviceName = info.host;
+      } else if (info.mac) {
+        // Use a friendly name based on MAC address
+        const shortMac = info.mac.substring(info.mac.length - 6);
+        deviceName = `WLED-${shortMac}`;
+      }
+      
+      // Get MAC address for a reliable ID
+      const mac = info.mac ? info.mac.replace(/:/g, '') : '';
+      
+      // Create a unique ID - use MAC if available, otherwise fallback to IP-based ID
+      const deviceId = mac ? `wled-${mac.toLowerCase()}` : `wled-${ip.replace(/\./g, '-')}`;
+      
+      // Create the device data
+      const deviceData = {
+        name: deviceName,
+        data: {
+          id: deviceId
+        },
+        settings: {
+          address: ip,
+          pollInterval: 5,
+          // Store additional info from the API for reference
+          version: info.ver || '',
+          fxcount: info.fxcount || 0,
+          palcount: info.palcount || 0,
+          ledCount: info.leds?.count || 0
+        }
+      };
+      
+      this.log(`Generated device data:`, JSON.stringify(deviceData, null, 2));
+      
+      return deviceData;
+    } catch (error) {
+      this.error(`Error getting device info: ${error.message}`);
+      throw new Error(`Could not connect to WLED device: ${error.message}`);
+    }
   }
 
   async onPair(session) {
-    this.log('Starting pairing process');
+    this.log('************ STARTING PAIRING PROCESS ************');
+    this.log('Driver version: 1.0.4 with Homey logging');
 
-    // Store the manual device for pairing
-    this.manualDevice = null;
+    // Track active view to prevent cross-view device creation
+    let activeView = '';
+    let manualDevice = null;
+    let discoveryDevices = [];
 
-    // When a view is shown
+    // Debug: Print all discoveryResults
+    this.log('Current discovery results:', JSON.stringify(Object.values(this.discoveryResults || {}), null, 2));
+    
+    // Add a logging endpoint for HTML pages
+    session.setHandler('log', async (message) => {
+      this.log('TEMPLATE LOG:', message);
+      return true;
+    });
+
+    // Handle view navigation - CRITICAL for cleaning up state between views
     session.setHandler('showView', async (view) => {
-      this.log(`Showing view: ${view}`);
+      this.log(`NAVIGATION - Changed view from ${activeView} to ${view}`);
+      activeView = view;
       
-      if (view === 'add_device_finish') {
-        this.log('Device pairing process completing...');
+      // Clear appropriate selections when switching views
+      if (view === 'manual_entry') {
+        this.log('NAVIGATION - Switched to manual entry, clearing discovery devices');
+        // Clear discovery devices when going to manual entry
+        discoveryDevices = [];
+      } else if (view === 'list_devices') {
+        this.log('NAVIGATION - Switched to discovery, clearing manual device');
+        // Clear manual device when going to discovery
+        manualDevice = null;
       }
     });
 
-    // Handle manual IP entry view
+    // Handle device creation - CENTRAL POINT for all device creation
+    session.setHandler('createDevice', async (device) => {
+      try {
+        this.log('CREATE DEVICE CALLED with data:', JSON.stringify(device, null, 2));
+        this.log(`CREATE DEVICE - Current view: ${activeView}`);
+        
+        // Return ONLY the device that was directly created by the current view
+        if (activeView === 'manual_entry') {
+          if (!manualDevice) {
+            this.log('CREATE DEVICE ERROR - No manual device available');
+            throw new Error('No manual device available');
+          }
+          
+          // ONLY return the manual device, ignore any other device data
+          this.log('CREATE DEVICE - Creating ONLY the manual device:', JSON.stringify(manualDevice, null, 2));
+          return manualDevice;
+        } 
+        else if (activeView === 'list_devices' || activeView === 'add_device_finish') {
+          // For discovery, ONLY return the device that was selected
+          if (!device || !device.data || !device.data.id) {
+            this.log('CREATE DEVICE ERROR - Invalid device data');
+            throw new Error('Invalid device data');
+          }
+          
+          const matchingDevice = discoveryDevices.find(d => d.data.id === device.data.id);
+          if (!matchingDevice) {
+            this.log('CREATE DEVICE ERROR - Device not found in discovery list');
+            throw new Error('Device not found in discovery list');
+          }
+          
+          // Return ONLY this single device
+          this.log('CREATE DEVICE - Creating ONLY the selected discovery device:', 
+                     JSON.stringify(matchingDevice, null, 2));
+          return matchingDevice;
+        }
+        
+        this.log('CREATE DEVICE ERROR - Unknown view context:', activeView);
+        throw new Error(`Unknown view context: ${activeView}`);
+      } catch (error) {
+        this.error('Error in createDevice:', error);
+        throw error;
+      }
+    });
+
+    // Handle manual IP entry
     session.setHandler('manual_entry', async (data) => {
       try {
         const ip = data.ip;
-        this.log(`Attempting manual entry with IP: ${ip}`);
+        this.log(`========== MANUAL - Testing connection to IP: ${ip} ==========`);
+        
+        // Use our common method to get device info
+        const deviceInfo = await this.getDeviceInfo(ip);
+        
+        // Save this as the current manual device
+        manualDevice = deviceInfo;
+        
+        // Add extra debugging
+        this.log(`MANUAL - DEVICE STRUCTURE:
+Device Name: ${deviceInfo.name}
+Device ID: ${deviceInfo.data.id}
+Settings: ${JSON.stringify(deviceInfo.settings, null, 2)}
+Full Object: ${JSON.stringify(deviceInfo, null, 2)}`);
 
-        // Create HTTP client for this IP
-        const httpClient = new HttpClient({
-          baseURL: `http://${ip}`,
-          timeout: 5000
-        });
-
-        this.log('Created HTTP client, fetching device info...');
-
-        // Check if this is a WLED device
-        const info = await httpClient.get('/json/info');
-        const name = info.name || 'WLED';
-
-        this.log(`Got device info: ${name}`);
-
-        // Create device object for immediate creation
-        const deviceId = `wled-manual-${ip.replace(/\./g, '-')}`;
-        const device = {
-          name: name,
-          data: {
-            id: deviceId
-          },
-          settings: {
-            address: ip,
-            pollInterval: 5
-          }
-        };
-
-        // Store the manual device for the add_device handler
-        this.manualDevice = device;
-        this.log(`Manual device prepared for pairing:`, this.manualDevice);
-
-        return device;
+        return deviceInfo;
       } catch (error) {
-        this.error(`Error during manual entry: ${error.message}`);
+        this.error(`MANUAL - Connection test failed: ${error.message}`);
         return Promise.reject(new Error(`Could not connect to WLED device: ${error.message}`));
       }
     });
 
     // Handle list_devices view (discovery)
     session.setHandler('list_devices', async () => {
-      this.log('Handler: list_devices called');
-
+      this.log('========== DISCOVERY - Getting discovered devices ==========');
       const devices = [];
-
-      // Log what we have in discoveryResults
-      this.log('Current discovery results:', Object.keys(this.discoveryResults));
 
       // Add discovered devices from mDNS
       const discoveryResults = Object.values(this.discoveryResults || {});
-      this.log(`Found ${discoveryResults.length} devices via discovery`);
+      this.log(`DISCOVERY - Found ${discoveryResults.length} devices via discovery`);
 
+      // Process each discovered device
       for (const discoveryResult of discoveryResults) {
         if (discoveryResult && discoveryResult.address) {
-          const device = {
-            name: discoveryResult.name || `WLED (${discoveryResult.address})`,
-            data: {
-              id: `wled-${discoveryResult.address.replace(/\./g, '-')}`
-            },
-            settings: {
-              address: discoveryResult.address,
-              pollInterval: 5
-            },
-            capabilities: [
-              {
-                "id": "wled_effect",
-                "value": "0"
+          try {
+            // Get detailed device info from the API
+            this.log(`DISCOVERY - Getting info for ${discoveryResult.address}`);
+            const deviceInfo = await this.getDeviceInfo(discoveryResult.address);
+            
+            // Add extra debugging
+            this.log(`DISCOVERY - DEVICE STRUCTURE for ${discoveryResult.address}:
+Device Name: ${deviceInfo.name}
+Device ID: ${deviceInfo.data.id}
+Settings: ${JSON.stringify(deviceInfo.settings, null, 2)}
+Full Object: ${JSON.stringify(deviceInfo, null, 2)}`);
+            
+            devices.push(deviceInfo);
+          } catch (error) {
+            // Log the error but continue with other devices
+            this.error(`DISCOVERY - Error getting info for discovered device at ${discoveryResult.address}: ${error.message}`);
+            
+            // Fall back to basic info
+            const device = {
+              name: discoveryResult.name || `WLED (${discoveryResult.address})`,
+              data: {
+                id: `wled-${discoveryResult.address.replace(/\./g, '-')}`
               },
-              {
-                "id": "wled_palette",
-                "value": "0"
+              settings: {
+                address: discoveryResult.address,
+                pollInterval: 5
               }
-            ]
-          };
-
-          devices.push(device);
+            };
+            this.log(`DISCOVERY - Using fallback info for ${discoveryResult.address}:`, JSON.stringify(device, null, 2));
+            devices.push(device);
+          }
         }
       }
 
+      // Save the discovery devices for later reference
+      discoveryDevices = [...devices];
+      
+      this.log(`DISCOVERY - Returning ${devices.length} devices:`, JSON.stringify(devices, null, 2));
       return devices;
     });
 
-    // Handle device selection from list_devices
+    // Handle device selection
     session.setHandler('list_device_selection', async (device) => {
-      this.log('Device selected:', device);
+      this.log('SELECTION - Device selected:', JSON.stringify(device, null, 2));
       return device;
-    });
-
-    // Handle device being added - this is called when the add button is pressed in manual entry
-    session.setHandler('add_device', async (device) => {
-      this.log('Adding device to Homey via add_device:', device);
-      return device; // This will be passed to the add_devices template
-    });
-    
-    // Handle multiple devices being added - standard handler for add_devices template
-    session.setHandler('add_devices', async (devices) => {
-      this.log(`Adding ${devices ? devices.length : 0} device(s) to Homey via add_devices:`, devices);
-      return devices;
     });
   }
 }

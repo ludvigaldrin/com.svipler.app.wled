@@ -1,5 +1,5 @@
 {
-  "name": "com.svipler.athom.wled",
+  "name": "com.svipler.app.wled",
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {

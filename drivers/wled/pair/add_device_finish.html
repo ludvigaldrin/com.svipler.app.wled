@@ -45,9 +45,22 @@
 </div>
 
 <script>
-  console.log('ADD_DEVICE_FINISH: View loaded');
-  // Complete the pairing immediately
+  // Helper to log to Homey
+  function logToHomey(message) {
+    // Log to console as well for debugging
+    console.log(message);
+    
+    // Send log to Homey driver
+    Homey.emit('log', `[ADD DEVICE FINISH] ${message}`)
+      .catch(err => console.error('Error logging to Homey:', err));
+  }
+
+  // Log that we're in the final step
+  logToHomey('ADD_DEVICE_FINISH: Page loaded, pairing complete');
+  
+  // Complete the pairing process after a short delay
   setTimeout(() => {
+    logToHomey('Pairing completed, calling Homey.done()');
     Homey.done();
-  }, 1500);
+  }, 2000);
 </script> 

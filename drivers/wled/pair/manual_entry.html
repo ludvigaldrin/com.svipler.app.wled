@@ -121,6 +121,19 @@
 </div>
 
 <script>
+  // Helper to log to Homey
+  function logToHomey(message) {
+    // Log to console as well for debugging
+    console.log(message);
+    
+    // Send log to Homey driver
+    Homey.emit('log', `[MANUAL ENTRY] ${message}`)
+      .catch(err => console.error('Error logging to Homey:', err));
+  }
+  
+  // Debug logging
+  logToHomey('MANUAL ENTRY TEMPLATE LOADED - Debug v1.0.4');
+  
   const ipAddressInput = document.getElementById('ip-address');
   const testButton = document.getElementById('test-button');
   const addButton = document.getElementById('add-button');
@@ -150,6 +163,7 @@
   // Event listener for Test Connection button
   testButton.addEventListener('click', function() {
     const ip = ipAddressInput.value.trim();
+    logToHomey(`Testing connection to IP: ${ip}`);
     
     // Reset UI
     deviceInfo.style.display = 'none';
@@ -175,15 +189,21 @@
     loading.style.display = 'block';
     testButton.disabled = true;
     
-    console.log('Testing connection to WLED device at IP:', ip);
+    logToHomey('Testing connection to WLED device at IP: ' + ip);
     
     // Send data to driver
     Homey.emit('manual_entry', { ip: ip })
       .then(result => {
-        console.log('Connection test successful:', result);
+        logToHomey('Connection test successful: ' + JSON.stringify(result, null, 2));
         
         // Store the device data
         deviceData = result;
+        
+        // Debug the device data
+        logToHomey(`Device data received:
+Name: ${result.name}
+ID: ${result.data.id}
+Address: ${result.settings.address}`);
         
         // Update UI to show device info
         deviceName.textContent = result.name;
@@ -200,7 +220,7 @@
         testButton.disabled = false;
       })
       .catch(error => {
-        console.error('Error testing connection:', error);
+        logToHomey('Error testing connection: ' + error.message);
         errorMessage.textContent = error.message || "Could not connect to WLED device";
         errorMessage.style.display = 'block';
         loading.style.display = 'none';
@@ -216,40 +236,38 @@
       return;
     }
     
+    // Add debugging
+    logToHomey('MANUAL ENTRY - DEVICE DATA: ' + JSON.stringify(deviceData, null, 2));
+    logToHomey('MANUAL ENTRY - Device name: ' + deviceData.name);
+    logToHomey('MANUAL ENTRY - Device ID: ' + deviceData.data.id);
+    logToHomey('MANUAL ENTRY - Device settings: ' + JSON.stringify(deviceData.settings, null, 2));
+    
+    // Log device creation
+    logToHomey(`Creating device from MANUAL entry:
+Name: ${deviceData.name}
+ID: ${deviceData.data.id}
+Address: ${deviceData.settings.address}`);
+    
     // Disable button and show loading
     addButton.disabled = true;
     loading.textContent = 'Adding device...';
     loading.style.display = 'block';
     
-    console.log('Adding device:', deviceData);
+    logToHomey('CREATING DEVICE NOW --> ' + JSON.stringify(deviceData, null, 2));
     
-    // Create the device directly, with initial capability values to prevent errors
-    Homey.createDevice({
-      name: deviceData.name,
-      data: deviceData.data,
-      settings: deviceData.settings,
-      capabilities: [
-        {
-          "id": "wled_effect",
-          "value": "0"
-        },
-        {
-          "id": "wled_palette",
-          "value": "0"
-        }
-      ]
-    })
-    .then(() => {
-      console.log('Device created successfully');
-      Homey.showView('add_device_finish');
-    })
-    .catch(error => {
-      console.error('Error creating device:', error);
-      errorMessage.textContent = `Could not add device: ${error.message || error}`;
-      errorMessage.style.display = 'block';
-      loading.style.display = 'none';
-      addButton.disabled = false;
-    });
+    // Create the device directly with properly formatted data
+    Homey.createDevice(deviceData)
+      .then(() => {
+        logToHomey('Device created successfully');
+        Homey.showView('add_device_finish');
+      })
+      .catch(error => {
+        logToHomey('Error creating device: ' + error.message);
+        errorMessage.textContent = `Could not add device: ${error.message || error}`;
+        errorMessage.style.display = 'block';
+        loading.style.display = 'none';
+        addButton.disabled = false;
+      });
   });
   
   // Check for Enter key in the IP input

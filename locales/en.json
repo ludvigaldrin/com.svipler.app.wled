@@ -58,12 +58,6 @@
     },
     "set_palette": {
       "title": "Set Palette"
-    },
-    "start_playlist": {
-      "title": "Start Playlist"
-    },
-    "set_individual_leds": {
-      "title": "Set Individual LEDs"
     }
   }
 }

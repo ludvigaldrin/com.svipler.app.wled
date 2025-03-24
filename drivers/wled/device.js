@@ -8,6 +8,7 @@ class WLEDDevice extends Homey.Device {
   async onInit() {
     this.log('WLED device initialized');
     
+    // Get device settings
     const settings = this.getSettings();
     const { address } = settings;
     
@@ -17,6 +18,12 @@ class WLEDDevice extends Homey.Device {
       throw new Error('No IP address in settings');
     }
     
+    // Load device capabilities info
+    this.maxEffectId = settings.fxcount ? settings.fxcount - 1 : 255;
+    this.maxPaletteId = settings.palcount ? settings.palcount - 1 : 255;
+    
+    this.log(`Device has ${settings.fxcount || 'unknown'} effects and ${settings.palcount || 'unknown'} palettes`);
+    
     // Create HTTP client
     this.apiClient = new HttpClient({
       baseURL: `http://${address}`,
@@ -24,15 +31,28 @@ class WLEDDevice extends Homey.Device {
     });
     
     // Initialize capabilities with default values if not set
+    // First check if we have the capability
     if (this.hasCapability('wled_effect')) {
-      if (this.getCapabilityValue('wled_effect') === null) {
-        await this.setCapabilityValue('wled_effect', '0').catch(this.error);
+      try {
+        // Set a default value of "0" (solid) if none exists
+        if (this.getCapabilityValue('wled_effect') === null) {
+          await this.setCapabilityValue('wled_effect', '0');
+          this.log('Initialized wled_effect to default value 0');
+        }
+      } catch (error) {
+        this.error('Error initializing wled_effect capability:', error);
       }
     }
     
     if (this.hasCapability('wled_palette')) {
-      if (this.getCapabilityValue('wled_palette') === null) {
-        await this.setCapabilityValue('wled_palette', '0').catch(this.error);
+      try {
+        // Set a default value of "0" (default palette) if none exists
+        if (this.getCapabilityValue('wled_palette') === null) {
+          await this.setCapabilityValue('wled_palette', '0');
+          this.log('Initialized wled_palette to default value 0');
+        }
+      } catch (error) {
+        this.error('Error initializing wled_palette capability:', error);
       }
     }
     
@@ -129,8 +149,8 @@ class WLEDDevice extends Homey.Device {
         // Effect - MUST be a string for enum capabilities
         if (segment.fx !== undefined) {
           const effectId = String(segment.fx);
-          // Always set to 0 if out of range
-          if (segment.fx < 0 || segment.fx > 5) {
+          // Always set to 0 if out of range (allowing for up to 255 effects)
+          if (segment.fx < 0 || segment.fx > 255) {
             this.log(`Effect ID ${effectId} out of range, setting to 0`);
             await this.setCapabilityValue('wled_effect', "0");
           } else {
@@ -141,8 +161,8 @@ class WLEDDevice extends Homey.Device {
         // Palette - MUST be a string for enum capabilities
         if (segment.pal !== undefined) {
           const paletteId = String(segment.pal);
-          // Always set to 0 if out of range
-          if (segment.pal < 0 || segment.pal > 5) {
+          // Always set to 0 if out of range (allowing for up to 255 palettes)
+          if (segment.pal < 0 || segment.pal > 255) {
             this.log(`Palette ID ${paletteId} out of range, setting to 0`);
             await this.setCapabilityValue('wled_palette', "0");
           } else {
@@ -325,7 +345,13 @@ class WLEDDevice extends Homey.Device {
       { id: '3', name: 'Wipe' },
       { id: '4', name: 'Fade' },
       { id: '5', name: 'Colorloop' },
-      { id: '6', name: 'Rainbow' }
+      { id: '6', name: 'Rainbow' },
+      { id: '7', name: 'Scan' },
+      { id: '8', name: 'Dual Scan' },
+      { id: '9', name: 'Fade Out' },
+      { id: '10', name: 'Chase' },
+      { id: '11', name: 'Chase Rainbow' },
+      { id: '12', name: 'Running' }
     ];
   }
   
@@ -338,7 +364,12 @@ class WLEDDevice extends Homey.Device {
       { id: '3', name: 'Based on Primary' },
       { id: '4', name: 'Set Colors' },
       { id: '5', name: 'Rainbow' },
-      { id: '6', name: 'Rainbow Bands' }
+      { id: '6', name: 'Rainbow with Glitter' },
+      { id: '7', name: 'Cloud' },
+      { id: '8', name: 'Lava' },
+      { id: '9', name: 'Ocean' },
+      { id: '10', name: 'Forest' },
+      { id: '11', name: 'Party' }
     ];
   }
   

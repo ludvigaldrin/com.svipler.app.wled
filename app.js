@@ -38,13 +38,6 @@ class WLEDApp extends Homey.App {
         const { device } = args;
         return device.getPalettesList(query);
       });
-      
-    // Action flow card for setting a playlist
-    this.homey.flow.getActionCard('start_playlist')
-      .registerRunListener(async (args, state) => {
-        const { device, presets, durations, repeat } = args;
-        return device.startPlaylist(presets, durations, repeat);
-      });
   }
 }
 

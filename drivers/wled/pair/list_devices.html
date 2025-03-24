@@ -1,17 +1,55 @@
-<!-- This empty html file ensures the standard list_devices template is used -->
-
+<!-- Debug version of list_devices.html -->
 <style>
-  .manual-container {
-    margin-top: 20px;
+  .container {
+    padding: 20px;
+    margin-bottom: 80px; /* Make room for the button */
+  }
+  
+  .title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
     text-align: center;
-    padding: 10px;
-    border-top: 1px solid #eee;
+  }
+  
+  .device-list {
+    margin-bottom: 20px;
+  }
+  
+  .device-item {
+    padding: 15px;
+    margin-bottom: 10px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    border-left: 4px solid transparent;
+    cursor: pointer;
+  }
+  
+  .device-item.selected {
+    background-color: rgba(0, 192, 242, 0.1);
+    border-left: 4px solid #00C0F2;
+  }
+  
+  .device-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .device-ip {
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .no-devices {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
   }
   
   .manual-button {
     display: block;
     width: 100%;
-    margin: 10px auto;
     padding: 12px;
     background-color: #f5f5f5;
     border: none;
@@ -19,106 +57,163 @@
     color: #333;
     font-size: 16px;
     cursor: pointer;
-  }
-  
-  .manual-button:hover {
-    background-color: #e5e5e5;
-  }
-  
-  .add-button-container {
-    margin-top: 15px;
+    margin-top: 20px;
     text-align: center;
-    display: none;
   }
   
   .add-button {
-    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
     width: 100%;
-    margin: 10px auto;
-    padding: 12px;
-    background-color: #4CAF50;
-    border: none;
-    border-radius: 4px;
+    padding: 16px;
+    background-color: #00C0F2;
     color: white;
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     cursor: pointer;
-  }
-  
-  .add-button:hover {
-    background-color: #3d8b40;
-  }
-  
-  .no-results {
-    text-align: center;
-    margin: 10px 0;
-    color: #666;
-    font-style: italic;
+    z-index: 9999;
   }
 </style>
 
-<div id="add-button-container" class="add-button-container">
-  <button id="add-button" class="add-button">Add Device</button>
-</div>
-
-<div class="manual-container">
-  <div id="no-results" class="no-results" style="display: none;">
-    <p>No WLED devices found on your network.</p>
+<div class="container">
+  <div class="title">Select a WLED Device</div>
+  
+  <div id="device-list" class="device-list">
+    <!-- Devices will be added here dynamically -->
+    <div id="no-devices" class="no-devices">Searching for WLED devices...</div>
   </div>
   
   <button id="manual-button" class="manual-button">Add device manually by IP</button>
 </div>
 
+<button id="add-button" class="add-button">Add Device</button>
+
 <script>
-  // Initialize
-  console.log('LIST_DEVICES: Template loaded');
+  // Helper to log to Homey
+  function logToHomey(message) {
+    // Log to console as well for debugging
+    console.log(message);
+    
+    // Send log to Homey driver
+    Homey.emit('log', `[LIST DEVICES] ${message}`)
+      .catch(err => console.error('Error logging to Homey:', err));
+  }
   
-  // Add button container and button
-  const addButtonContainer = document.getElementById('add-button-container');
-  const addButton = document.getElementById('add-button');
+  // Debug logging
+  logToHomey('LIST DEVICES PAGE LOADED - Debug v1.0.4');
+  
+  // Store selected device
   let selectedDevice = null;
   
-  // Check if devices are found
+  // Get references to elements
+  const deviceListElement = document.getElementById('device-list');
+  const noDevicesElement = document.getElementById('no-devices');
+  const addButton = document.getElementById('add-button');
+  const manualButton = document.getElementById('manual-button');
+  
+  // Handle device list from Homey
   Homey.on('list_devices', function(devices) {
-    console.log('LIST_DEVICES: Received devices:', devices && devices.length);
-    if (!devices || devices.length === 0) {
-      document.getElementById('no-results').style.display = 'block';
-    }
-  });
-  
-  // Listen for device selection
-  Homey.on('list_device_selection', function(device) {
-    console.log('LIST_DEVICES: Device selected:', device);
-    selectedDevice = device;
+    logToHomey(`Received ${devices.length} devices from Homey`);
+    logToHomey('Devices: ' + JSON.stringify(devices, null, 2));
     
-    if (device) {
-      // Show add button when a device is selected
-      addButtonContainer.style.display = 'block';
-    } else {
-      // Hide add button when no device is selected
-      addButtonContainer.style.display = 'none';
+    // Clear any existing devices first
+    const existingDevices = document.querySelectorAll('.device-item');
+    existingDevices.forEach(item => item.remove());
+    
+    if (devices.length === 0) {
+      noDevicesElement.textContent = 'No WLED devices found';
+      return;
     }
-  });
-  
-  // Add button click handler
-  addButton.addEventListener('click', function() {
-    console.log('LIST_DEVICES: Add button clicked, selected device:', selectedDevice);
-    if (selectedDevice) {
-      // Create the device and navigate to finish
-      Homey.createDevice(selectedDevice)
-        .then(() => {
-          console.log('LIST_DEVICES: Device created successfully');
-          Homey.showView('add_device_finish');
-        })
-        .catch(error => {
-          console.error('LIST_DEVICES: Error creating device:', error);
-          alert(`Failed to add device: ${error.message || 'Unknown error'}`);
+    
+    // Hide the no devices message
+    noDevicesElement.style.display = 'none';
+    
+    // Create device list items
+    devices.forEach((device, index) => {
+      const deviceItem = document.createElement('div');
+      deviceItem.className = 'device-item';
+      deviceItem.dataset.index = index;
+      deviceItem.dataset.deviceJson = JSON.stringify(device);
+      
+      const deviceName = document.createElement('div');
+      deviceName.className = 'device-name';
+      deviceName.textContent = device.name;
+      
+      const deviceIp = document.createElement('div');
+      deviceIp.className = 'device-ip';
+      deviceIp.textContent = device.settings.address;
+      
+      deviceItem.appendChild(deviceName);
+      deviceItem.appendChild(deviceIp);
+      deviceListElement.appendChild(deviceItem);
+      
+      // Add selection event
+      deviceItem.addEventListener('click', function() {
+        // Remove selection from all items
+        document.querySelectorAll('.device-item').forEach(item => {
+          item.classList.remove('selected');
         });
+        
+        // Add selection to this item
+        this.classList.add('selected');
+        
+        // Store selected device
+        selectedDevice = device;
+        logToHomey(`Selected device: ${device.name} (${device.settings.address})`);
+      });
+    });
+    
+    // Auto-select first device
+    if (devices.length > 0) {
+      // Don't store selectedDevice automatically, just highlight first item visually
+      const firstDeviceItem = document.querySelector('.device-item');
+      if (firstDeviceItem) {
+        firstDeviceItem.classList.add('selected');
+        
+        // Log that we're highlighting but not selecting
+        logToHomey('Highlighting first device but waiting for user selection');
+      }
     }
   });
   
-  // Manual entry button
-  document.getElementById('manual-button').addEventListener('click', function() {
-    console.log('LIST_DEVICES: Navigate to manual entry');
+  // Handle add button click
+  addButton.addEventListener('click', function() {
+    // Get the currently selected device element
+    const selectedElement = document.querySelector('.device-item.selected');
+    
+    // Try to get device data from the selected element
+    if (selectedElement && selectedElement.dataset.deviceJson) {
+      try {
+        const deviceData = JSON.parse(selectedElement.dataset.deviceJson);
+        logToHomey('Selected device from UI: ' + JSON.stringify(deviceData, null, 2));
+        
+        // Create the device
+        logToHomey(`Adding device: ${deviceData.name} (${deviceData.settings.address})`);
+        logToHomey('CREATING DEVICE NOW --> ' + JSON.stringify(deviceData, null, 2));
+        
+        Homey.createDevice(deviceData)
+          .then(() => {
+            logToHomey('Device added successfully!');
+            Homey.showView('add_device_finish');
+          })
+          .catch(error => {
+            logToHomey(`Error adding device: ${error.message || error}`);
+          });
+      } catch (error) {
+        logToHomey('Error parsing device data: ' + error.message);
+      }
+    } else {
+      logToHomey('No device selected in UI');
+    }
+  });
+  
+  // Handle manual button click
+  manualButton.addEventListener('click', function() {
+    logToHomey('Going to manual entry view');
     Homey.showView('manual_entry');
   });
 </script> 
