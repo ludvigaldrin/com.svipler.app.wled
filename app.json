@@ -148,6 +148,7 @@
         "en": "WLED Device"
       },
       "class": "light",
+      "icon": "/drivers/wled/assets/icon.svg",
       "capabilities": [
         "onoff",
         "dim",
@@ -182,31 +183,48 @@
       "pair": [
         {
           "id": "start",
-          "navigation": {
-            "next": "list_devices"
+          "options": {
+            "title": {
+              "en": "Add WLED Device"
+            }
           }
         },
         {
           "id": "list_devices",
           "template": "list_devices",
+          "options": {
+            "title": {
+              "en": "Select WLED Device"
+            },
+            "singular": false,
+            "showAlreadyPaired": false,
+            "nextText": {
+              "en": "Add Device"
+            }
+          },
           "navigation": {
-            "next": "add_devices",
+            "next": "add_device_finish",
             "prev": "start"
           }
-        },
-        {
-          "id": "add_devices",
-          "template": "add_devices"
         },
         {
           "id": "manual_entry",
+          "options": {
+            "title": {
+              "en": "Add WLED Device Manually"
+            },
+            "nextText": {
+              "en": "Add Device"
+            }
+          },
           "navigation": {
-            "next": "add_manually",
+            "next": "add_device_finish",
             "prev": "start"
           }
         },
         {
-          "id": "add_manually"
+          "id": "add_device_finish",
+          "template": "add_devices"
         }
       ],
       "settings": [
@@ -242,28 +260,104 @@
   ],
   "capabilities": {
     "wled_effect": {
-      "type": "number",
+      "type": "enum",
       "title": {
         "en": "Effect"
       },
-      "getable": true,
-      "setable": true,
-      "min": 0,
-      "max": 100,
-      "uiComponent": "picker",
-      "values": []
-    },
-    "wled_palette": {
-      "type": "number",
-      "title": {
-        "en": "Color Palette"
+      "desc": {
+        "en": "Select a WLED effect"
       },
       "getable": true,
       "setable": true,
-      "min": 0,
-      "max": 100,
       "uiComponent": "picker",
-      "values": []
+      "values": [
+        {
+          "id": "0",
+          "title": {
+            "en": "Solid"
+          }
+        },
+        {
+          "id": "1",
+          "title": {
+            "en": "Blink"
+          }
+        },
+        {
+          "id": "2",
+          "title": {
+            "en": "Breathe"
+          }
+        },
+        {
+          "id": "3",
+          "title": {
+            "en": "Wipe"
+          }
+        },
+        {
+          "id": "4",
+          "title": {
+            "en": "Fade"
+          }
+        },
+        {
+          "id": "5",
+          "title": {
+            "en": "Colorloop"
+          }
+        }
+      ]
+    },
+    "wled_palette": {
+      "type": "enum",
+      "title": {
+        "en": "Color Palette"
+      },
+      "desc": {
+        "en": "Select a WLED color palette"
+      },
+      "getable": true,
+      "setable": true,
+      "uiComponent": "picker",
+      "values": [
+        {
+          "id": "0",
+          "title": {
+            "en": "Default"
+          }
+        },
+        {
+          "id": "1",
+          "title": {
+            "en": "Random Colors"
+          }
+        },
+        {
+          "id": "2",
+          "title": {
+            "en": "Primary Color"
+          }
+        },
+        {
+          "id": "3",
+          "title": {
+            "en": "Based on Primary"
+          }
+        },
+        {
+          "id": "4",
+          "title": {
+            "en": "Set Colors"
+          }
+        },
+        {
+          "id": "5",
+          "title": {
+            "en": "Rainbow"
+          }
+        }
+      ]
     }
   },
   "discovery": {
@@ -281,6 +375,15 @@
             "match": {
               "type": "regex",
               "value": "wled-.*"
+            }
+          }
+        ],
+        [
+          {
+            "field": "name",
+            "match": {
+              "type": "regex",
+              "value": ".*wled.*"
             }
           }
         ]

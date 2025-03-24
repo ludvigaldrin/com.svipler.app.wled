@@ -5,6 +5,7 @@
   },
   "class": "light",
   "brandName": "WLED",
+  "icon": "/drivers/wled/assets/icon.svg",
   "capabilities": [
     "onoff",
     "dim",
@@ -30,33 +31,35 @@
   },
   "pair": [
     {
-      "id": "start",
-      "navigation": {
-        "next": "list_devices"
-      }
+      "id": "start"
     },
     {
       "id": "list_devices",
       "template": "list_devices",
+      "options": {
+        "title": {
+          "en": "Select WLED Device"
+        },
+        "singular": false,
+        "showAlreadyPaired": false,
+        "nextText": {
+          "en": "Add"
+        }
+      },
       "navigation": {
-        "next": "add_devices",
+        "next": "add_device_finish",
         "prev": "start"
       }
     },
     {
-      "id": "add_devices",
+      "id": "add_device_finish",
       "template": "add_devices"
     },
     {
       "id": "manual_entry",
       "navigation": {
-        "next": "add_manually",
         "prev": "start"
       }
-    },
-    {
-      "id": "add_manually",
-      "template": "add_devices"
     }
   ],
   "settings": [

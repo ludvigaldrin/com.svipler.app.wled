@@ -1,12 +1,50 @@
 {
-  "type": "number",
+  "type": "enum",
   "title": {
     "en": "Effect"
   },
+  "desc": {
+    "en": "Select a WLED effect"
+  },
   "getable": true,
   "setable": true,
-  "min": 0,
-  "max": 100,
   "uiComponent": "picker",
-  "values": []
+  "values": [
+    {
+      "id": "0",
+      "title": {
+        "en": "Solid"
+      }
+    },
+    {
+      "id": "1",
+      "title": {
+        "en": "Blink"
+      }
+    },
+    {
+      "id": "2",
+      "title": {
+        "en": "Breathe"
+      }
+    },
+    {
+      "id": "3",
+      "title": {
+        "en": "Wipe"
+      }
+    },
+    {
+      "id": "4",
+      "title": {
+        "en": "Fade"
+      }
+    },
+    {
+      "id": "5",
+      "title": {
+        "en": "Colorloop"
+      }
+    }
+  ]
 } 

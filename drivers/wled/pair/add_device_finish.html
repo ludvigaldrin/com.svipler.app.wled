@@ -1,0 +1,53 @@
+<style>
+  .container {
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .success-message {
+    margin: 20px 0;
+    font-size: 18px;
+    color: #4CAF50;
+    font-weight: bold;
+  }
+  
+  .info {
+    margin: 10px 0;
+    font-size: 14px;
+    color: #666;
+  }
+
+  .icon {
+    display: block;
+    margin: 0 auto 20px;
+    width: 60px;
+    height: 60px;
+  }
+
+  .check-circle {
+    fill: #4CAF50;
+  }
+</style>
+
+<div class="container">
+  <svg class="icon" viewBox="0 0 24 24">
+    <circle class="check-circle" cx="12" cy="12" r="11" />
+    <path fill="white" d="M9.5 15.5l-3.5-3.5 1.5-1.5 2 2 5-5 1.5 1.5z" />
+  </svg>
+  
+  <div class="success-message">
+    Device added successfully!
+  </div>
+  
+  <div class="info">
+    You can now control your WLED device from Homey.
+  </div>
+</div>
+
+<script>
+  console.log('ADD_DEVICE_FINISH: View loaded');
+  // Complete the pairing immediately
+  setTimeout(() => {
+    Homey.done();
+  }, 1500);
+</script> 

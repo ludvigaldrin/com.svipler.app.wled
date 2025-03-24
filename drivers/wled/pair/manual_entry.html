@@ -1,131 +1,262 @@
 <style>
-  .container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-  }
-  
-  .subtitle {
-    font-size: 16px;
-    color: #666;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  
   .form-group {
-    width: 100%;
-    max-width: 300px;
-    margin-bottom: 20px;
+    margin-bottom: 1rem;
   }
   
-  .label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-  }
-  
-  .input {
+  .form-control {
     width: 100%;
-    padding: 10px;
+    padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
   }
   
-  .button {
-    padding: 15px;
-    background-color: #00adef;
+  .btn {
+    padding: 8px 16px;
+    background-color: #00c0f3;
     color: white;
     border: none;
     border-radius: 4px;
-    font-size: 16px;
     cursor: pointer;
-    width: 100%;
+    margin-right: 8px;
   }
   
-  .button:hover {
-    background-color: #0088cc;
+  .btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
   }
   
-  .error {
-    color: red;
-    margin-top: 10px;
+  .btn-success {
+    background-color: #4CAF50;
+  }
+  
+  .info-message {
+    color: #00c0f3;
     display: none;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  
+  .error-message {
+    color: red;
+    display: none;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  
+  .loading {
+    display: none;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #00c0f3;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 5px;
+    animation: spin 1s linear infinite;
+  }
+  
+  .device-info {
+    display: none;
+    margin-top: 15px;
+    padding: 12px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+  }
+  
+  .device-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .test-container {
+    margin-top: 15px;
+  }
+  
+  .add-container {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+  }
+  
+  .add-button {
+    display: none;
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    margin-top: 10px;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 </style>
 
-<div class="container">
-  <p class="subtitle" data-i18n="pair.manual_entry.subtitle">Enter the IP address of your WLED device</p>
-  
-  <div class="form-group">
-    <label class="label" for="ip-address" data-i18n="pair.manual_entry.fields.ip.label">IP Address</label>
-    <input id="ip-address" class="input" type="text" placeholder="192.168.1.100" />
-  </div>
-  
-  <div class="form-group">
-    <button id="connect-button" class="button" data-i18n="pair.manual_entry.buttons.connect">Connect</button>
-  </div>
-  
-  <div id="error-message" class="error"></div>
+<div class="form-group">
+  <label for="ip-address">IP Address</label>
+  <input type="text" id="ip-address" class="form-control" placeholder="192.168.1.100">
+</div>
+
+<div class="test-container">
+  <button id="test-button" class="btn">Test Connection</button>
+</div>
+
+<div id="device-info" class="device-info">
+  <div class="device-name" id="device-name">Device Name</div>
+  <div id="device-address">IP Address: </div>
+</div>
+
+<div id="loading" class="loading"><span class="spinner"></span> Testing connection...</div>
+<div id="info-message" class="info-message"></div>
+<div id="error-message" class="error-message"></div>
+
+<div class="add-container">
+  <button id="add-button" class="btn btn-success add-button">Add Device</button>
 </div>
 
 <script>
-  Homey.setTitle(Homey.__('pair.manual_entry.title'));
-  
   const ipAddressInput = document.getElementById('ip-address');
-  const connectButton = document.getElementById('connect-button');
+  const testButton = document.getElementById('test-button');
+  const addButton = document.getElementById('add-button');
+  const deviceInfo = document.getElementById('device-info');
+  const deviceName = document.getElementById('device-name');
+  const deviceAddress = document.getElementById('device-address');
+  const infoMessage = document.getElementById('info-message');
   const errorMessage = document.getElementById('error-message');
+  const loading = document.getElementById('loading');
   
-  // Listen for suggested IP
-  Homey.on('suggested_ip', (baseIp) => {
-    console.log(`Received suggested IP base: ${baseIp}`);
-    if (baseIp && ipAddressInput.value === '') {
-      // Suggest the last octet as 100
-      ipAddressInput.value = `${baseIp}.100`;
-    }
-  });
+  // Store the device data
+  let deviceData = null;
   
-  connectButton.addEventListener('click', async () => {
-    const ipAddress = ipAddressInput.value.trim();
+  // Validate IP address using regex
+  function isValidIP(ip) {
+    const regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    if (!regex.test(ip)) return false;
     
-    if (!ipAddress) {
-      showError(Homey.__('pair.manual_entry.errors.empty'));
-      return;
+    const parts = ip.split('.');
+    for (let i = 0; i < parts.length; i++) {
+      const part = parseInt(parts[i], 10);
+      if (part < 0 || part > 255) return false;
     }
-    
-    // Simple IP validation regex
-    const ipRegex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    
-    if (!ipRegex.test(ipAddress)) {
-      showError(Homey.__('pair.manual_entry.errors.invalid'));
-      return;
-    }
-    
-    try {
-      connectButton.disabled = true;
-      connectButton.innerHTML = `${Homey.__('pair.manual_entry.buttons.connect')}...`;
-      
-      console.log(`Sending manual_entry with IP: ${ipAddress}`);
-      const result = await Homey.emit('manual_entry', { ip: ipAddress });
-      console.log('Manual entry result:', result);
-      
-      if (result && result.success) {
-        console.log('Success! Navigating to add_manually view');
-        Homey.showView('add_manually');
-      } else {
-        showError(result.message || Homey.__('pair.manual_entry.errors.connection'));
-      }
-    } catch (error) {
-      console.error('Error during manual entry:', error);
-      showError(Homey.__('pair.manual_entry.errors.connection'));
-    } finally {
-      connectButton.disabled = false;
-      connectButton.innerHTML = Homey.__('pair.manual_entry.buttons.connect');
-    }
-  });
-  
-  function showError(message) {
-    errorMessage.innerText = message;
-    errorMessage.style.display = 'block';
+    return true;
   }
+  
+  // Event listener for Test Connection button
+  testButton.addEventListener('click', function() {
+    const ip = ipAddressInput.value.trim();
+    
+    // Reset UI
+    deviceInfo.style.display = 'none';
+    addButton.style.display = 'none';
+    infoMessage.style.display = 'none';
+    
+    // Validate IP address
+    if (!ip) {
+      errorMessage.textContent = "IP address is required";
+      errorMessage.style.display = 'block';
+      return;
+    }
+    
+    if (!isValidIP(ip)) {
+      errorMessage.textContent = "Please enter a valid IP address";
+      errorMessage.style.display = 'block';
+      return;
+    }
+    
+    // Clear error and show loading
+    errorMessage.style.display = 'none';
+    loading.textContent = 'Testing connection...';
+    loading.style.display = 'block';
+    testButton.disabled = true;
+    
+    console.log('Testing connection to WLED device at IP:', ip);
+    
+    // Send data to driver
+    Homey.emit('manual_entry', { ip: ip })
+      .then(result => {
+        console.log('Connection test successful:', result);
+        
+        // Store the device data
+        deviceData = result;
+        
+        // Update UI to show device info
+        deviceName.textContent = result.name;
+        deviceAddress.textContent = `IP Address: ${result.settings.address}`;
+        deviceInfo.style.display = 'block';
+        
+        // Show success message and add button
+        infoMessage.textContent = 'Connection successful! Click the button below to add this device.';
+        infoMessage.style.display = 'block';
+        addButton.style.display = 'block';
+        
+        // Hide loading
+        loading.style.display = 'none';
+        testButton.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error testing connection:', error);
+        errorMessage.textContent = error.message || "Could not connect to WLED device";
+        errorMessage.style.display = 'block';
+        loading.style.display = 'none';
+        testButton.disabled = false;
+      });
+  });
+  
+  // Event listener for Add Device button
+  addButton.addEventListener('click', function() {
+    if (!deviceData) {
+      errorMessage.textContent = "Device data not available. Please test the connection again.";
+      errorMessage.style.display = 'block';
+      return;
+    }
+    
+    // Disable button and show loading
+    addButton.disabled = true;
+    loading.textContent = 'Adding device...';
+    loading.style.display = 'block';
+    
+    console.log('Adding device:', deviceData);
+    
+    // Create the device directly, with initial capability values to prevent errors
+    Homey.createDevice({
+      name: deviceData.name,
+      data: deviceData.data,
+      settings: deviceData.settings,
+      capabilities: [
+        {
+          "id": "wled_effect",
+          "value": "0"
+        },
+        {
+          "id": "wled_palette",
+          "value": "0"
+        }
+      ]
+    })
+    .then(() => {
+      console.log('Device created successfully');
+      Homey.showView('add_device_finish');
+    })
+    .catch(error => {
+      console.error('Error creating device:', error);
+      errorMessage.textContent = `Could not add device: ${error.message || error}`;
+      errorMessage.style.display = 'block';
+      loading.style.display = 'none';
+      addButton.disabled = false;
+    });
+  });
+  
+  // Check for Enter key in the IP input
+  ipAddressInput.addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      testButton.click();
+    }
+  });
 </script> 

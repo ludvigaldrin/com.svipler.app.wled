@@ -9,6 +9,11 @@
         "manual": "Add manually"
       }
     },
+    "list_devices": {
+      "title": "Found Devices",
+      "manual_button": "Add device manually",
+      "no_devices": "No WLED devices found. Please check if your devices are on the same network."
+    },
     "manual_entry": {
       "title": "Add by IP address",
       "subtitle": "Enter the IP address of your WLED device",

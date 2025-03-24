@@ -13,6 +13,15 @@
     text-align: center;
   }
   
+  .icon-container {
+    margin-bottom: 20px;
+  }
+  
+  .icon {
+    width: 80px;
+    height: 80px;
+  }
+  
   .buttons {
     display: flex;
     flex-direction: column;
@@ -38,22 +47,34 @@
 </style>
 
 <div class="container">
-  <p class="subtitle" data-i18n="pair.start.subtitle">Connect your WLED device to Homey</p>
+  <div class="icon-container">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <!-- LED Strip Base -->
+      <rect x="2" y="8" width="20" height="8" rx="1" />
+      
+      <!-- LED Lights -->
+      <circle cx="6" cy="12" r="2" />
+      <circle cx="12" cy="12" r="2" />
+      <circle cx="18" cy="12" r="2" />
+    </svg>
+  </div>
+  
+  <p class="subtitle">Choose how to add your WLED device</p>
   
   <div class="buttons">
-    <button id="discover-button" class="button" data-i18n="pair.start.buttons.discover">Discover devices</button>
-    <button id="manual-button" class="button" data-i18n="pair.start.buttons.manual">Add manually</button>
+    <button id="discover-button" class="button">Discover devices</button>
+    <button id="manual-button" class="button">Add manually</button>
   </div>
 </div>
 
 <script>
-  Homey.setTitle(Homey.__('pair.start.title'));
-  
   document.getElementById('discover-button').addEventListener('click', function() {
+    console.log('Navigate to list_devices');
     Homey.showView('list_devices');
   });
   
   document.getElementById('manual-button').addEventListener('click', function() {
+    console.log('Navigate to manual_entry');
     Homey.showView('manual_entry');
   });
 </script> 

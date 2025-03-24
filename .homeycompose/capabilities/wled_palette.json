@@ -1,12 +1,50 @@
 {
-  "type": "number",
+  "type": "enum",
   "title": {
     "en": "Color Palette"
   },
+  "desc": {
+    "en": "Select a WLED color palette"
+  },
   "getable": true,
   "setable": true,
-  "min": 0,
-  "max": 100,
   "uiComponent": "picker",
-  "values": []
+  "values": [
+    {
+      "id": "0",
+      "title": {
+        "en": "Default"
+      }
+    },
+    {
+      "id": "1",
+      "title": {
+        "en": "Random Colors"
+      }
+    },
+    {
+      "id": "2",
+      "title": {
+        "en": "Primary Color"
+      }
+    },
+    {
+      "id": "3",
+      "title": {
+        "en": "Based on Primary"
+      }
+    },
+    {
+      "id": "4",
+      "title": {
+        "en": "Set Colors"
+      }
+    },
+    {
+      "id": "5",
+      "title": {
+        "en": "Rainbow"
+      }
+    }
+  ]
 } 

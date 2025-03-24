@@ -1,0 +1,124 @@
+<!-- This empty html file ensures the standard list_devices template is used -->
+
+<style>
+  .manual-container {
+    margin-top: 20px;
+    text-align: center;
+    padding: 10px;
+    border-top: 1px solid #eee;
+  }
+  
+  .manual-button {
+    display: block;
+    width: 100%;
+    margin: 10px auto;
+    padding: 12px;
+    background-color: #f5f5f5;
+    border: none;
+    border-radius: 4px;
+    color: #333;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .manual-button:hover {
+    background-color: #e5e5e5;
+  }
+  
+  .add-button-container {
+    margin-top: 15px;
+    text-align: center;
+    display: none;
+  }
+  
+  .add-button {
+    display: block;
+    width: 100%;
+    margin: 10px auto;
+    padding: 12px;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .add-button:hover {
+    background-color: #3d8b40;
+  }
+  
+  .no-results {
+    text-align: center;
+    margin: 10px 0;
+    color: #666;
+    font-style: italic;
+  }
+</style>
+
+<div id="add-button-container" class="add-button-container">
+  <button id="add-button" class="add-button">Add Device</button>
+</div>
+
+<div class="manual-container">
+  <div id="no-results" class="no-results" style="display: none;">
+    <p>No WLED devices found on your network.</p>
+  </div>
+  
+  <button id="manual-button" class="manual-button">Add device manually by IP</button>
+</div>
+
+<script>
+  // Initialize
+  console.log('LIST_DEVICES: Template loaded');
+  
+  // Add button container and button
+  const addButtonContainer = document.getElementById('add-button-container');
+  const addButton = document.getElementById('add-button');
+  let selectedDevice = null;
+  
+  // Check if devices are found
+  Homey.on('list_devices', function(devices) {
+    console.log('LIST_DEVICES: Received devices:', devices && devices.length);
+    if (!devices || devices.length === 0) {
+      document.getElementById('no-results').style.display = 'block';
+    }
+  });
+  
+  // Listen for device selection
+  Homey.on('list_device_selection', function(device) {
+    console.log('LIST_DEVICES: Device selected:', device);
+    selectedDevice = device;
+    
+    if (device) {
+      // Show add button when a device is selected
+      addButtonContainer.style.display = 'block';
+    } else {
+      // Hide add button when no device is selected
+      addButtonContainer.style.display = 'none';
+    }
+  });
+  
+  // Add button click handler
+  addButton.addEventListener('click', function() {
+    console.log('LIST_DEVICES: Add button clicked, selected device:', selectedDevice);
+    if (selectedDevice) {
+      // Create the device and navigate to finish
+      Homey.createDevice(selectedDevice)
+        .then(() => {
+          console.log('LIST_DEVICES: Device created successfully');
+          Homey.showView('add_device_finish');
+        })
+        .catch(error => {
+          console.error('LIST_DEVICES: Error creating device:', error);
+          alert(`Failed to add device: ${error.message || 'Unknown error'}`);
+        });
+    }
+  });
+  
+  // Manual entry button
+  document.getElementById('manual-button').addEventListener('click', function() {
+    console.log('LIST_DEVICES: Navigate to manual entry');
+    Homey.showView('manual_entry');
+  });
+</script> 
