@@ -5,7 +5,7 @@
   "scripts": {
     "start": "homey app run --remote",
     "deploy": "homey app publish",
-    "git-push": "git commit -m 'update' && git push"
+    "git": "git commit -m 'update' && git push"
   },
   "devDependencies": {
     "@types/homey": "npm:homey-apps-sdk-v3-types@^0.3.11"

@@ -263,6 +263,48 @@
           "title": {
             "en": "Colorloop"
           }
+        },
+        {
+          "id": "6",
+          "title": {
+            "en": "Rainbow"
+          }
+        },
+        {
+          "id": "7",
+          "title": {
+            "en": "Scan"
+          }
+        },
+        {
+          "id": "8",
+          "title": {
+            "en": "Dual Scan"
+          }
+        },
+        {
+          "id": "9",
+          "title": {
+            "en": "Fade Out"
+          }
+        },
+        {
+          "id": "10",
+          "title": {
+            "en": "Chase"
+          }
+        },
+        {
+          "id": "11",
+          "title": {
+            "en": "Chase Rainbow"
+          }
+        },
+        {
+          "id": "12",
+          "title": {
+            "en": "Running"
+          }
         }
       ]
     },
@@ -312,6 +354,42 @@
           "id": "5",
           "title": {
             "en": "Rainbow"
+          }
+        },
+        {
+          "id": "6",
+          "title": {
+            "en": "Rainbow with Glitter"
+          }
+        },
+        {
+          "id": "7",
+          "title": {
+            "en": "Cloud"
+          }
+        },
+        {
+          "id": "8",
+          "title": {
+            "en": "Lava"
+          }
+        },
+        {
+          "id": "9",
+          "title": {
+            "en": "Ocean"
+          }
+        },
+        {
+          "id": "10",
+          "title": {
+            "en": "Forest"
+          }
+        },
+        {
+          "id": "11",
+          "title": {
+            "en": "Party"
           }
         }
       ]
