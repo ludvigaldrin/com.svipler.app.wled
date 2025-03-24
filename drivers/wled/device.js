@@ -533,22 +533,33 @@ class WLEDDevice extends Homey.Device {
         id: String(id),
         title: {
           en: name || `Effect ${id}`
-        }
+        },
+        // Store the original name for sorting
+        originalName: name || `Effect ${id}`
       }));
       
-      this.log(`Updating effects capability with ${effectOptions.length} options`);
+      // Sort effects alphabetically by name
+      effectOptions.sort((a, b) => {
+        // Compare names, case-insensitive
+        return a.originalName.toLowerCase().localeCompare(b.originalName.toLowerCase());
+      });
+      
+      // Remove the temporary originalName property
+      const cleanEffectOptions = effectOptions.map(({id, title}) => ({id, title}));
+      
+      this.log(`Updating effects capability with ${cleanEffectOptions.length} sorted options`);
       
       // Log a few sample effects to debug
-      if (effectOptions.length > 0) {
-        this.log(`Sample effects: ${JSON.stringify(effectOptions.slice(0, 3))}`);
+      if (cleanEffectOptions.length > 0) {
+        this.log(`Sample effects (sorted): ${JSON.stringify(cleanEffectOptions.slice(0, 3))}`);
       }
       
       // Update the capability options
       await this.setCapabilityOptions('wled_effect', {
-        values: effectOptions
+        values: cleanEffectOptions
       });
       
-      this.log(`Updated effects capability with ${effectOptions.length} options`);
+      this.log(`Updated effects capability with ${cleanEffectOptions.length} options`);
     } catch (error) {
       this.error('Error updating effects capability:', error);
     }
@@ -561,22 +572,33 @@ class WLEDDevice extends Homey.Device {
         id: String(id),
         title: {
           en: name || `Palette ${id}`
-        }
+        },
+        // Store the original name for sorting
+        originalName: name || `Palette ${id}`
       }));
       
-      this.log(`Updating palettes capability with ${paletteOptions.length} options`);
+      // Sort palettes alphabetically by name
+      paletteOptions.sort((a, b) => {
+        // Compare names, case-insensitive
+        return a.originalName.toLowerCase().localeCompare(b.originalName.toLowerCase());
+      });
+      
+      // Remove the temporary originalName property
+      const cleanPaletteOptions = paletteOptions.map(({id, title}) => ({id, title}));
+      
+      this.log(`Updating palettes capability with ${cleanPaletteOptions.length} sorted options`);
       
       // Log a few sample palettes to debug
-      if (paletteOptions.length > 0) {
-        this.log(`Sample palettes: ${JSON.stringify(paletteOptions.slice(0, 3))}`);
+      if (cleanPaletteOptions.length > 0) {
+        this.log(`Sample palettes (sorted): ${JSON.stringify(cleanPaletteOptions.slice(0, 3))}`);
       }
       
       // Update the capability options
       await this.setCapabilityOptions('wled_palette', {
-        values: paletteOptions
+        values: cleanPaletteOptions
       });
       
-      this.log(`Updated palettes capability with ${paletteOptions.length} options`);
+      this.log(`Updated palettes capability with ${cleanPaletteOptions.length} options`);
     } catch (error) {
       this.error('Error updating palettes capability:', error);
     }
