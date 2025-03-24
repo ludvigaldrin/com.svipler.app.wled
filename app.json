@@ -151,20 +151,13 @@
           }
         },
         {
-          "id": "list_devices",
-          "template": "list_devices",
+          "id": "discover_devices",
           "options": {
             "title": {
               "en": "Select WLED Device"
-            },
-            "singular": false,
-            "showAlreadyPaired": false,
-            "nextText": {
-              "en": "Add"
             }
           },
           "navigation": {
-            "next": "add_device_finish",
             "prev": "start"
           }
         },
@@ -180,8 +173,12 @@
           }
         },
         {
-          "id": "add_device_finish",
-          "template": "add_devices"
+          "id": "add_device",
+          "options": {
+            "title": {
+              "en": "Adding Device"
+            }
+          }
         }
       ],
       "settings": [

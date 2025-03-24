@@ -1,0 +1,176 @@
+<style>
+  .container {
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .loading-message {
+    margin: 20px 0;
+    font-size: 18px;
+    color: #00adef;
+    font-weight: bold;
+  }
+  
+  .success-message {
+    margin: 20px 0;
+    font-size: 18px;
+    color: #4CAF50;
+    font-weight: bold;
+    display: none;
+  }
+  
+  .error-message {
+    margin: 20px 0;
+    font-size: 18px;
+    color: #f44336;
+    font-weight: bold;
+    display: none;
+  }
+  
+  .info {
+    margin: 10px 0;
+    font-size: 14px;
+    color: #666;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(0, 173, 239, 0.3);
+    border-radius: 50%;
+    border-top-color: #00adef;
+    animation: spin 1s ease-in-out infinite;
+    margin: 20px auto;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .icon {
+    display: none;
+    margin: 0 auto 20px;
+    width: 60px;
+    height: 60px;
+  }
+
+  .check-circle {
+    fill: #4CAF50;
+  }
+  
+  .error-circle {
+    fill: #f44336;
+  }
+</style>
+
+<div class="container">
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-message">
+      Adding your WLED device...
+    </div>
+    <div class="info">
+      Please wait while we add your device to Homey.
+    </div>
+  </div>
+  
+  <div id="success" style="display: none;">
+    <svg class="icon" id="success-icon" viewBox="0 0 24 24">
+      <circle class="check-circle" cx="12" cy="12" r="11" />
+      <path fill="white" d="M9.5 15.5l-3.5-3.5 1.5-1.5 2 2 5-5 1.5 1.5z" />
+    </svg>
+    
+    <div class="success-message">
+      Device added successfully!
+    </div>
+    
+    <div class="info">
+      You can now control your WLED device from Homey.
+    </div>
+  </div>
+  
+  <div id="error" style="display: none;">
+    <svg class="icon" id="error-icon" viewBox="0 0 24 24">
+      <circle class="error-circle" cx="12" cy="12" r="11" />
+      <path fill="white" d="M13 17h-2v-2h2v2zm0-4h-2V7h2v6z" />
+    </svg>
+    
+    <div class="error-message" id="error-text">
+      Error adding device
+    </div>
+    
+    <div class="info" id="error-info">
+      Please try again or add your device manually.
+    </div>
+  </div>
+</div>
+
+<script>
+  // Helper to log to Homey
+  function logToHomey(message) {
+    // Log to console as well for debugging
+    console.log(message);
+    
+    // Send log to Homey driver
+    Homey.emit('log', `[ADD DEVICE] ${message}`)
+      .catch(err => console.error('Error logging to Homey:', err));
+  }
+
+  // Log that we're in the add device step
+  logToHomey('ADD_DEVICE: Page loaded');
+  
+  // Show success UI
+  function showSuccess() {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+    document.getElementById('success-icon').style.display = 'block';
+    
+    // Complete the pairing process after a short delay
+    setTimeout(() => {
+      logToHomey('Pairing completed, calling Homey.done()');
+      Homey.done();
+    }, 2000);
+  }
+  
+  // Show error UI
+  function showError(message, details) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error-icon').style.display = 'block';
+    
+    if (message) {
+      document.getElementById('error-text').textContent = message;
+    }
+    
+    if (details) {
+      document.getElementById('error-info').textContent = details;
+    }
+  }
+
+  // When this page loads, we try to get the selected device
+  Homey.emit('get_selected_device')
+    .then(deviceData => {
+      if (!deviceData) {
+        showError('No device selected', 'Please go back and select a device to add.');
+        return;
+      }
+      
+      logToHomey('Creating device: ' + JSON.stringify(deviceData, null, 2));
+      
+      // Create the device in Homey
+      Homey.createDevice(deviceData)
+        .then(() => {
+          logToHomey('Device added successfully!');
+          showSuccess();
+        })
+        .catch(error => {
+          logToHomey(`Error adding device: ${error.message || error}`);
+          showError('Error adding device', error.message || 'Please try again.');
+        });
+    })
+    .catch(error => {
+      logToHomey(`Error getting selected device: ${error.message || error}`);
+      showError('Error retrieving device data', error.message || 'Please try again.');
+    });
+</script> 
