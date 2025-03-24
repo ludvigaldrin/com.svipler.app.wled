@@ -11,7 +11,6 @@ class WLEDDevice extends Homey.Device {
       
       // Get device settings
       const settings = this.getSettings();
-      this.log('Device settings:', settings);
       
       // Check for IP address (support both 'ip' and 'address' for backwards compatibility)
       const ipAddress = settings.ip || settings.address;
@@ -38,6 +37,10 @@ class WLEDDevice extends Homey.Device {
       this.lastStateUpdate = 0;
       this.pollingInterval = settings.polling_interval || 
         (settings.pollInterval ? settings.pollInterval * 1000 : 5000);
+      
+      // Flag to track whether we're already fetching effects and palettes
+      this.fetchingEffectsAndPalettes = false;
+      this.effectsAndPalettesFetched = false;
       
       // Make sure API client is properly configured on each operation
       // Start with immediate state update with a shorter timeout
@@ -323,7 +326,6 @@ class WLEDDevice extends Homey.Device {
       });
       
       // Get state from WLED API
-      // Reduce polling log spam
       const response = await apiClient.get('/json/state');
       
       if (!response || !response.data) {
@@ -336,7 +338,6 @@ class WLEDDevice extends Homey.Device {
       this.setAvailable();
       
       const state = response.data;
-      // Reduce state logging spam
       
       // Update device capabilities
       await this.setCapabilityValue('onoff', !!state.on).catch(this.error);
@@ -386,14 +387,11 @@ class WLEDDevice extends Homey.Device {
       this.lastStateUpdate = Date.now();
       
       // If we haven't fetched effects and palettes yet, do it now
-      if (!this.effectsAndPalettesFetched) {
-        this.fetchEffectsAndPalettes()
-          .then(() => {
-            this.effectsAndPalettesFetched = true;
-          })
-          .catch(error => {
-            this.error('Failed to fetch effects and palettes:', error.message);
-          });
+      // Only attempt to fetch if not already fetching and not yet fetched
+      if (!this.effectsAndPalettesFetched && !this.fetchingEffectsAndPalettes) {
+        this.fetchEffectsAndPalettes().catch(error => {
+          this.error('Failed to fetch effects and palettes:', error.message);
+        });
       }
     } catch (error) {
       // Set device as unavailable if we get a connection error
@@ -409,15 +407,21 @@ class WLEDDevice extends Homey.Device {
   
   // Helper methods for effects and palettes
   async fetchEffectsAndPalettes() {
+    // Prevent multiple simultaneous fetch operations
+    if (this.fetchingEffectsAndPalettes) {
+      return false;
+    }
+    
+    this.fetchingEffectsAndPalettes = true;
+    
     try {
-      this.log('Fetching effects and palettes from device');
-      
       // Get IP address from settings
       const settings = this.getSettings();
       const ipAddress = settings.ip || settings.address;
       
       if (!ipAddress) {
         this.error('No IP address in settings, cannot fetch effects and palettes');
+        this.fetchingEffectsAndPalettes = false;
         throw new Error('No IP address configured');
       }
       
@@ -435,12 +439,10 @@ class WLEDDevice extends Homey.Device {
       if (data && data.effects && Array.isArray(data.effects)) {
         // Update the maximum effect ID
         this.maxEffectId = data.effects.length - 1;
-        this.log(`Found ${data.effects.length} effects, max ID: ${this.maxEffectId}`);
         
         // Update device capability options
         await this._updateEffectsCapability(data.effects);
       } else {
-        this.log('Effects not found in main API response, using defaults');
         await this._updateEffectsCapability(this._getDefaultEffects());
       }
       
@@ -448,12 +450,10 @@ class WLEDDevice extends Homey.Device {
       if (data && data.palettes && Array.isArray(data.palettes)) {
         // Update the maximum palette ID
         this.maxPaletteId = data.palettes.length - 1;
-        this.log(`Found ${data.palettes.length} palettes, max ID: ${this.maxPaletteId}`);
         
         // Update device capability options
         await this._updatePalettesCapability(data.palettes);
       } else {
-        this.log('Palettes not found in main API response, using defaults');
         await this._updatePalettesCapability(this._getDefaultPalettes());
       }
       
@@ -482,19 +482,21 @@ class WLEDDevice extends Homey.Device {
       }
       
       if (settingsChanged) {
-        this.log('Updating device settings with info from API');
         await this.setSettings(updatedSettings);
       }
       
-      this.log('Effects and palettes updated successfully');
+      // Mark as fetched to prevent duplicate fetches
+      this.effectsAndPalettesFetched = true;
+      this.fetchingEffectsAndPalettes = false;
       return true;
     } catch (error) {
       this.error(`Error fetching effects and palettes: ${error.message || error}`);
       
       // Fall back to defaults if there's an error
-      this.log('Using default effects and palettes');
       await this._updateEffectsCapability(this._getDefaultEffects());
       await this._updatePalettesCapability(this._getDefaultPalettes());
+      
+      this.fetchingEffectsAndPalettes = false;
       return false;
     }
   }
@@ -520,7 +522,10 @@ class WLEDDevice extends Homey.Device {
       // Remove the temporary originalName property
       const cleanEffectOptions = effectOptions.map(({id, title}) => ({id, title}));
       
-      this.log(`Updating ${cleanEffectOptions.length} effects`);
+      // Only log count during initial setup
+      if (!this.effectsAndPalettesFetched) {
+        this.log(`Found ${cleanEffectOptions.length} effects`);
+      }
       
       // Update the capability options
       await this.setCapabilityOptions('wled_effect', {
@@ -552,7 +557,10 @@ class WLEDDevice extends Homey.Device {
       // Remove the temporary originalName property
       const cleanPaletteOptions = paletteOptions.map(({id, title}) => ({id, title}));
       
-      this.log(`Updating ${cleanPaletteOptions.length} palettes`);
+      // Only log count during initial setup
+      if (!this.effectsAndPalettesFetched) {
+        this.log(`Found ${cleanPaletteOptions.length} palettes`);
+      }
       
       // Update the capability options
       await this.setCapabilityOptions('wled_palette', {
