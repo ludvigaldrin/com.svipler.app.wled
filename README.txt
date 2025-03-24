@@ -1,4 +1,4 @@
-# WLED Controller for Homey
+WLED Controller for Homey
 
 Control your WLED-powered LED strips directly from Homey. This app enables you to:
 

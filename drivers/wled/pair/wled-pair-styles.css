@@ -1,0 +1,450 @@
+/* WLED Pairing Process Styles - Shared CSS for all pairing pages */
+
+/* Theme Variables - Default to dark theme */
+:root {
+  --background-color: #121212;
+  --card-background: #1e1e1e;
+  --card-background-selected: #21313e;
+  --card-border: #2c2c2c;
+  --card-border-selected: #00C0F2;
+  --text-color: #fff;
+  --text-color-secondary: #aaa;
+  --accent-color: #00C0F2;
+  --form-bg: #252525;
+  --form-border: #3a3a3a;
+  --success-color: #4CAF50;
+  --error-color: #f44336;
+}
+
+/* Instead of using media queries, we will apply these styles to the parent element */
+.homey-theme-dark {
+  --background-color: #121212;
+  --card-background: #1e1e1e;
+  --card-background-selected: #21313e;
+  --card-border: #2c2c2c;
+  --card-border-selected: #00C0F2;
+  --text-color: #fff;
+  --text-color-secondary: #aaa;
+  --accent-color: #00C0F2;
+  --form-bg: #252525;
+  --form-border: #3a3a3a;
+}
+
+.homey-theme-light {
+  --background-color: #ffffff;
+  --card-background: #f0f0f0;
+  --card-background-selected: #e6f7fc;
+  --card-border: #dedede;
+  --card-border-selected: #00C0F2;
+  --text-color: #333;
+  --text-color-secondary: #666;
+  --accent-color: #00C0F2;
+  --form-bg: #f7f7f7;
+  --form-border: #d0d0d0;
+}
+
+/* General Layout */
+body {
+  background-color: var(--background-color);
+  padding: 0;
+  margin: 0;
+  color: var(--text-color);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.container {
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: var(--background-color);
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 25px;
+  text-align: center;
+  color: var(--text-color);
+}
+
+/* Buttons */
+.button-container {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin: 20px 0 30px 0;
+}
+
+.primary-button, .secondary-button {
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 14px;
+}
+
+.primary-button {
+  background-color: var(--accent-color);
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 192, 242, 0.3);
+}
+
+.primary-button:hover {
+  background-color: #00b0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 192, 242, 0.4);
+}
+
+.secondary-button {
+  background-color: transparent;
+  color: var(--accent-color);
+  border: 2px solid var(--accent-color);
+}
+
+.secondary-button:hover {
+  background-color: rgba(0, 192, 242, 0.1);
+  transform: translateY(-2px);
+}
+
+.primary-button:active, .secondary-button:active {
+  transform: translateY(1px);
+}
+
+.primary-button:disabled, .secondary-button:disabled {
+  background-color: #7a7a7a;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+/* Hide the default Homey navigation Next button */
+#homey-header-right-button {
+  display: none !important;
+}
+
+/* Device List and Cards */
+.device-list {
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.device-item, .device-card {
+  display: flex;
+  flex-direction: column;
+  height: 150px;
+  padding: 15px;
+  background-color: var(--card-background);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.device-item {
+  cursor: pointer;
+  border: 2px solid var(--card-border);
+}
+
+.device-card {
+  border: 2px solid var(--accent-color);
+  margin: 30px auto;
+  max-width: 300px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.device-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.device-item.selected {
+  border: 2px solid var(--card-border-selected);
+  background-color: var(--card-background-selected);
+  box-shadow: 0 0 10px rgba(0, 192, 242, 0.3);
+}
+
+.device-icon {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
+}
+
+.device-icon svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+.device-icon svg rect {
+  fill: var(--text-color-secondary);
+}
+
+.device-icon svg circle {
+  fill: var(--accent-color);
+}
+
+.device-name {
+  font-weight: bold;
+  margin-top: 48px;
+  text-align: center;
+  font-size: 18px;
+  word-break: break-word;
+  color: var(--text-color);
+}
+
+.device-ip {
+  color: var(--text-color-secondary);
+  font-size: 14px;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.check-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  background-color: var(--accent-color);
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.device-item.selected .check-icon {
+  display: flex;
+}
+
+.no-devices {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-color-secondary);
+  font-style: italic;
+  grid-column: 1 / -1;
+  background-color: var(--card-background);
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.add-container {
+  text-align: center;
+  margin-top: 30px;
+}
+
+/* Forms */
+.form {
+  background-color: var(--card-background);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--form-bg);
+  border: 1px solid var(--form-border);
+  border-radius: 8px;
+  color: var(--text-color);
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(0, 192, 242, 0.2);
+}
+
+/* Device info and status */
+.device-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 40px;
+}
+
+.device-status {
+  margin: 15px auto 5px auto;
+  text-align: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  display: inline-block;
+  max-width: 80%;
+}
+
+.device-status.success {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: var(--success-color);
+  font-weight: bold;
+}
+
+.device-status.error {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: var(--error-color);
+  font-weight: bold;
+}
+
+.device-status.loading {
+  background-color: rgba(0, 192, 242, 0.2);
+  color: var(--accent-color);
+}
+
+/* Status Card for Add Device Page */
+.status-card {
+  background-color: var(--card-background);
+  border-radius: 16px;
+  padding: 30px 20px;
+  margin: 20px auto;
+  max-width: 400px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.status-card.loading {
+  border-left: 4px solid var(--accent-color);
+}
+
+.status-card.success {
+  border-left: 4px solid var(--success-color);
+}
+
+.status-card.error {
+  border-left: 4px solid var(--error-color);
+}
+
+.status-icon {
+  display: none;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 20px;
+}
+
+.success-icon svg {
+  fill: var(--success-color);
+  filter: drop-shadow(0 2px 4px rgba(76, 175, 80, 0.3));
+}
+
+.error-icon svg {
+  fill: var(--error-color);
+  filter: drop-shadow(0 2px 4px rgba(244, 67, 54, 0.3));
+}
+
+.status-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+.status-message {
+  color: var(--text-color-secondary);
+  margin-bottom: 20px;
+}
+
+/* Loading indicators */
+.loading-indicator, .loading-spinner {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(0, 192, 242, 0.2);
+  border-radius: 50%;
+  border-top-color: var(--accent-color);
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border-width: 4px;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Start page styles */
+.info-box {
+  background-color: var(--card-background);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.grid-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--card-background);
+  border: 2px solid var(--card-border);
+  border-radius: 12px;
+  padding: 25px 15px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.grid-button:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-color);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.button-icon {
+  width: 50px;
+  height: 50px;
+  margin-bottom: 15px;
+}
+
+.button-icon svg {
+  fill: var(--accent-color);
+  filter: drop-shadow(0 2px 3px rgba(0, 192, 242, 0.3));
+}
+
+.button-text {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: var(--text-color);
+}
+
+.button-desc {
+  font-size: 14px;
+  color: var(--text-color-secondary);
+  text-align: center;
+} 

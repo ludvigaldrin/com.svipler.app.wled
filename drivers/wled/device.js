@@ -170,7 +170,8 @@ class WLEDDevice extends Homey.Device {
         const ipAddress = settings.ip || settings.address;
         
         if (!ipAddress) {
-          throw new Error('No IP address configured');
+          this.error('No IP address configured for effect setting');
+          return false; // Don't throw, just return false
         }
         
         // Create fresh client for this request
@@ -184,7 +185,8 @@ class WLEDDevice extends Homey.Device {
         
         // Check if effect ID is valid
         if (isNaN(effectId) || effectId < 0 || effectId > this.maxEffectId) {
-          throw new Error(`Invalid effect ID: ${value}`);
+          this.error(`Invalid effect ID: ${value}`);
+          return false; // Don't throw, just return false
         }
         
         // Set effect for first segment
@@ -199,7 +201,8 @@ class WLEDDevice extends Homey.Device {
         return true;
       } catch (error) {
         this.error(`Error setting effect: ${error.message}`);
-        throw error;
+        // Don't throw the error, just log it and return false
+        return false; 
       }
     });
     
@@ -210,7 +213,8 @@ class WLEDDevice extends Homey.Device {
         const ipAddress = settings.ip || settings.address;
         
         if (!ipAddress) {
-          throw new Error('No IP address configured');
+          this.error('No IP address configured for palette setting');
+          return false; // Don't throw, just return false
         }
         
         // Create fresh client for this request
@@ -224,7 +228,8 @@ class WLEDDevice extends Homey.Device {
         
         // Check if palette ID is valid
         if (isNaN(paletteId) || paletteId < 0 || paletteId > this.maxPaletteId) {
-          throw new Error(`Invalid palette ID: ${value}`);
+          this.error(`Invalid palette ID: ${value}`);
+          return false; // Don't throw, just return false
         }
         
         // Set palette for first segment
@@ -239,7 +244,8 @@ class WLEDDevice extends Homey.Device {
         return true;
       } catch (error) {
         this.error(`Error setting palette: ${error.message}`);
-        throw error;
+        // Don't throw the error, just log it and return false
+        return false;
       }
     });
   }
@@ -422,7 +428,10 @@ class WLEDDevice extends Homey.Device {
       if (!ipAddress) {
         this.error('No IP address in settings, cannot fetch effects and palettes');
         this.fetchingEffectsAndPalettes = false;
-        throw new Error('No IP address configured');
+        // Don't throw, just handle gracefully
+        await this._updateEffectsCapability(this._getDefaultEffects());
+        await this._updatePalettesCapability(this._getDefaultPalettes());
+        return false;
       }
       
       // Create a fresh API client for this request
@@ -530,9 +539,13 @@ class WLEDDevice extends Homey.Device {
       // Update the capability options
       await this.setCapabilityOptions('wled_effect', {
         values: cleanEffectOptions
-      });
+      }).catch(err => this.error(`Failed to set effect options: ${err.message}`)); // Catch and log errors
+      
+      return true;
     } catch (error) {
       this.error('Error updating effects capability:', error);
+      // Return false but don't throw
+      return false;
     }
   }
   
@@ -565,9 +578,13 @@ class WLEDDevice extends Homey.Device {
       // Update the capability options
       await this.setCapabilityOptions('wled_palette', {
         values: cleanPaletteOptions
-      });
+      }).catch(err => this.error(`Failed to set palette options: ${err.message}`)); // Catch and log errors
+      
+      return true;
     } catch (error) {
       this.error('Error updating palettes capability:', error);
+      // Return false but don't throw
+      return false;
     }
   }
   

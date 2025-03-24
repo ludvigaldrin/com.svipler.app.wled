@@ -1,169 +1,8 @@
-<!-- Debug version of list_devices.html -->
-<style>
-  .container {
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-
-  .title {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 25px;
-    text-align: center;
-    color: #fff;
-  }
-
-  .device-list {
-    margin-bottom: 20px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-  }
-
-  .device-item {
-    display: flex;
-    flex-direction: column;
-    height: 150px;
-    padding: 15px;
-    background-color: #2a2a2a;
-    border-radius: 12px;
-    border: 2px solid #3a3a3a;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  .device-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .device-item.selected {
-    background-color: rgba(0, 192, 242, 0.15);
-    border: 2px solid #00C0F2;
-    box-shadow: 0 0 10px rgba(0, 192, 242, 0.3);
-  }
-
-  .device-icon {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 32px;
-    height: 32px;
-  }
-  
-  .device-icon svg {
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
-  }
-
-  .device-name {
-    font-weight: bold;
-    margin-top: 45px;
-    text-align: center;
-    font-size: 16px;
-    word-break: break-word;
-    color: #fff;
-  }
-
-  .device-ip {
-    color: #aaa;
-    font-size: 14px;
-    margin-top: 8px;
-    text-align: center;
-  }
-
-  .check-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 24px;
-    height: 24px;
-    background-color: #00C0F2;
-    border-radius: 50%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  }
-
-  .device-item.selected .check-icon {
-    display: flex;
-  }
-
-  .no-devices {
-    text-align: center;
-    padding: 20px;
-    color: #bbb;
-    font-style: italic;
-    grid-column: 1 / -1;
-    background-color: #2a2a2a;
-    border-radius: 8px;
-    margin: 20px 0;
-  }
-
-  .discovery-add-button {
-    display: none;
-    padding: 15px;
-    background-color: #00C0F2;
-    color: white;
-    font-size: 16px;
-    font-weight: bold;
-    border: none;
-    border-radius: 30px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    cursor: pointer;
-    margin: 0 auto 25px;
-    max-width: 80%;
-    opacity: 1;
-    box-shadow: 0 4px 10px rgba(0, 192, 242, 0.3);
-    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .discovery-add-button:hover {
-    background-color: #00b0e0;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 192, 242, 0.4);
-  }
-  
-  .discovery-add-button:active {
-    transform: translateY(1px);
-  }
-
-  .discovery-add-button.active {
-    opacity: 1;
-  }
-  
-  /* Hide the default Homey navigation Next button */
-  #homey-header-right-button {
-    display: none !important;
-  }
-  
-  /* Improved loading indicator */
-  .loading-indicator {
-    display: inline-block;
-    width: 30px;
-    height: 30px;
-    border: 3px solid rgba(0, 192, 242, 0.2);
-    border-radius: 50%;
-    border-top-color: #00C0F2;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 15px;
-  }
-  
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-</style>
+<!-- Discovery page for WLED devices -->
+<link rel="stylesheet" href="./wled-pair-styles.css">
 
 <div class="container">
   <div class="title">Select WLED Device</div>
-
-  <!-- Add Device button at the top -->
-  <button id="discovery-add-button" class="discovery-add-button">Add Selected Device</button>
 
   <div id="device-list" class="device-list">
     <!-- Devices will be added here dynamically -->
@@ -172,9 +11,27 @@
       Searching for WLED devices...
     </div>
   </div>
+
+  <!-- Add Device button in its own container -->
+  <div id="button-container" class="button-container">
+    <button id="discovery-add-button" class="primary-button">Add Selected Device</button>
+  </div>
 </div>
 
 <script>
+  // Apply correct theme
+  document.addEventListener('DOMContentLoaded', function() {
+    // Try to detect Homey's theme
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Apply theme class
+    if (isDarkMode) {
+      document.body.classList.add('homey-theme-dark');
+    } else {
+      document.body.classList.add('homey-theme-light');
+    }
+  });
+
   // Helper to log to Homey
   function logToHomey(message) {
     // Send log to Homey driver
@@ -191,8 +48,12 @@
   // Get references to elements
   const deviceListElement = document.getElementById('device-list');
   const noDevicesElement = document.getElementById('no-devices');
+  const buttonContainer = document.getElementById('button-container');
   const discoveryAddButton = document.getElementById('discovery-add-button');
 
+  // Hide the Add button initially
+  discoveryAddButton.style.display = 'none';
+  
   // Hide the Homey Next button (in addition to CSS)
   try {
     if (window.parent && window.parent.document) {
@@ -204,7 +65,7 @@
   } catch (e) {
     logToHomey('Error trying to hide Next button: ' + e.message);
   }
-  
+
   // Request devices only once when the page loads
   requestDevices();
   
@@ -220,7 +81,7 @@
       .catch(error => {
         logToHomey(`Error getting devices: ${error.message || error}`);
         noDevicesElement.innerHTML = `
-          <div style="color: #ff5252; font-weight: bold; margin-bottom: 10px;">Error loading devices</div>
+          <div style="color: var(--error-color); font-weight: bold; margin-bottom: 10px;">Error loading devices</div>
           <div>Please try again or add your device manually</div>`;
       });
   }
@@ -236,7 +97,6 @@
         <div style="font-weight: bold; margin-bottom: 10px;">No WLED devices found</div>
         <div>Try adding your device manually</div>`;
       noDevicesElement.style.display = 'block';
-      discoveryAddButton.style.display = 'none';
       return;
     }
 
@@ -255,10 +115,10 @@
       const deviceIcon = document.createElement('div');
       deviceIcon.className = 'device-icon';
       deviceIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-        <rect x="4" y="12" width="24" height="8" rx="4" ry="4" fill="#333"/>
-        <circle cx="9" cy="16" r="2" fill="#00C0F2"/>
-        <circle cx="16" cy="16" r="2" fill="#00C0F2"/>
-        <circle cx="23" cy="16" r="2" fill="#00C0F2"/>
+        <rect x="4" y="12" width="24" height="8" rx="4" ry="4" fill="var(--text-color-secondary)"/>
+        <circle cx="9" cy="16" r="2" fill="var(--accent-color)"/>
+        <circle cx="16" cy="16" r="2" fill="var(--accent-color)"/>
+        <circle cx="23" cy="16" r="2" fill="var(--accent-color)"/>
       </svg>`;
 
       // Add check icon 
@@ -295,7 +155,7 @@
         // Store selected device
         selectedDevice = device;
         
-        // Show and enable add button when a device is selected
+        // Show add button when a device is selected
         discoveryAddButton.style.display = 'block';
         
         logToHomey(`Selected device: ${device.name} (${device.settings.address})`);

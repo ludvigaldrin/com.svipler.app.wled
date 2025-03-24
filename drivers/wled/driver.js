@@ -147,18 +147,29 @@ class WLEDDriver extends Homey.Driver {
   async onPair(session) {
     // Track view state
     let activeView = '';
-    let manualDevice = null;
-    let selectedDevice = null;
+    let pairingDevice = null;
 
     // View navigation handler
     session.setHandler('showView', async (view) => {
       activeView = view;
       this.log(`Pairing: navigated to view ${view}`);
       
-      // Reset manual device on start view
+      // Reset device state on certain view changes
       if (view === 'start') {
-        manualDevice = null;
-        selectedDevice = null;
+        this.log('Resetting pairing device state');
+        pairingDevice = null;
+      }
+      
+      // Reset discovery results when returning to discovery page
+      if (view === 'discover_devices') {
+        this.log('Refreshing discovery results for discover_devices view');
+        // Discovery is handled by the page itself
+      }
+      
+      // Entering the manual entry page
+      if (view === 'manual_entry') {
+        this.log('Entering manual entry page');
+        // UI reset is handled by the page itself
       }
     });
 
@@ -167,38 +178,56 @@ class WLEDDriver extends Homey.Driver {
       this.log(`WebView: ${message}`);
     });
 
-    // Manual entry handler
-    session.setHandler('manual_entry', async (data) => {
+    // Test connection handler - new improved version
+    session.setHandler('test_connection', async (data) => {
       try {
-        const ip = data.ip;
+        const address = data.address;
+        this.log(`Testing connection to WLED device at: ${address}`);
         
-        // Get device info
-        const deviceInfo = await this.getDeviceInfo(ip);
-        manualDevice = deviceInfo;
+        // Create HTTP client for this test
+        const apiClient = axios.create({
+          baseURL: `http://${address}`,
+          timeout: 5000
+        });
         
-        return deviceInfo;
+        // Try to connect to the device
+        const response = await apiClient.get('/json/info');
+        
+        if (response.data) {
+          // Get full device data
+          const deviceData = await this.getDeviceInfo(address);
+          
+          this.log(`Successfully connected to WLED device: ${deviceData.name}`);
+          
+          // Return success with the device data
+          return {
+            success: true,
+            deviceData: deviceData
+          };
+        } else {
+          throw new Error('Received empty response from device');
+        }
       } catch (error) {
-        return Promise.reject(new Error(`Could not connect to WLED device: ${error.message}`));
+        this.error(`Connection test failed: ${error.message}`);
+        return {
+          success: false,
+          message: error.message || 'Failed to connect to the device'
+        };
       }
     });
 
-    // New handler to store a selected device from discover_devices view
+    // Store the selected device for pairing
     session.setHandler('selected_device', async (device) => {
       this.log('Device selected for pairing:', device.name, device.data.id);
-      selectedDevice = device;
+      pairingDevice = device;
       return true;
     });
 
-    // New handler to get the selected device on the add_device page
-    session.setHandler('get_selected_device', async () => {
-      if (activeView === 'manual_entry' && manualDevice) {
-        this.log('Returning manual device for pairing');
-        return manualDevice;
-      }
-      
-      if (selectedDevice) {
-        this.log('Returning selected device for pairing');
-        return selectedDevice;
+    // Get the pairing device on the add_device page
+    session.setHandler('get_pairing_device', async () => {
+      if (pairingDevice) {
+        this.log('Returning device for pairing:', pairingDevice.name);
+        return pairingDevice;
       }
       
       this.error('No device selected for pairing');

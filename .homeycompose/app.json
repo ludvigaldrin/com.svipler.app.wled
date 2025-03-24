@@ -45,11 +45,12 @@
     ]
   },
   "homepage": "https://github.com/svipler/com.svipler.athom.wled",
-  "support": "https://github.com/svipler/com.svipler.athom.wled/issues",
+  "support": "https://community.homey.app/t/app-pro-wled-controller/133405",
   "bugs": {
-    "url": "https://github.com/svipler/com.svipler.athom.wled/issues"
+    "url": "https://community.homey.app/t/app-pro-wled-controller/133405"
   },
   "source": "https://github.com/svipler/com.svipler.athom.wled",
   "brandColor": "#ff0000",
-  "brandName": "WLED"
+  "brandName": "WLED",
+  "homeyCommunityTopicId": 133405
 } 
