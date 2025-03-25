@@ -3,21 +3,21 @@
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 267.1 508" style="enable-background:new 0 0 267.1 508;" xml:space="preserve">
 	<!-- Pixelated WLED mascot that fills the viewbox better -->
-	<g transform="translate(-40, -100) scale(1.6)">
+	<g transform="translate(-40, -100) scale(1.7)">
 		<!-- LED body - centered and shorter, ending at the arms -->
-		<path fill="#000000" d="M93.5,134 h80 v80 h-80 z"/>
+		<path fill="#000000" d="M83.5,134 h100 v80 h-100 z"/>
 		<!-- LED notches on corners -->
-		<path fill="#000000" d="M93.5,134 v-20 h20 v20 z"/>
-		<path fill="#000000" d="M153.5,134 v-20 h20 v20 z"/>
+		<path fill="#000000" d="M83.5,134 v-20 h20 v20 z"/>
+		<path fill="#000000" d="M163.5,134 v-20 h20 v20 z"/>
 		<!-- LED eyes -->
 		<path fill="#000000" d="M103.5,164 h20 v20 h-20 z"/>
 		<path fill="#000000" d="M143.5,164 h20 v20 h-20 z"/>
 		<!-- LED mouth -->
 		<path fill="#000000" d="M123.5,194 h20 v10 h-20 z"/>
 		<!-- Left arm - single pixel width from bottom of body -->
-		<rect fill="#000000" x="23.5" y="214" width="70" height="20"/>
+		<rect fill="#000000" x="23.5" y="214" width="60" height="20"/>
 		<!-- Right arm - single pixel width from bottom of body -->
-		<rect fill="#000000" x="173.5" y="214" width="70" height="20"/>
+		<rect fill="#000000" x="183.5" y="214" width="60" height="20"/>
 		<!-- Left leg - starting at bottom of arms -->
 		<path fill="#000000" d="M103.5,234 h20 v80 h-20 z"/>
 		<!-- Right leg - starting at bottom of arms -->
