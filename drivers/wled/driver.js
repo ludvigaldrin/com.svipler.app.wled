@@ -187,6 +187,34 @@ class WLEDDriver extends Homey.Driver {
       }
     });
 
+    // Handler for complete discovery strategy refresh
+    session.setHandler('refresh_discovery_strategy', async () => {
+      this.log('Received request to refresh discovery strategy');
+      
+      try {
+        // Clear existing discovery results first
+        this.discoveryResults = {};
+        this.log('Cleared existing discovery results');
+        
+        // Get fresh discovery results
+        const currentResults = this.discoveryStrategy.getDiscoveryResults();
+        const resultIds = Object.keys(currentResults);
+        this.log(`Fresh discovery strategy refresh: Found ${resultIds.length} devices`);
+        
+        // Process each discovery result
+        for (const id of resultIds) {
+          const result = currentResults[id];
+          this.onDiscoveryResult(result);
+        }
+        
+        // Return success
+        return true;
+      } catch (error) {
+        this.error('Error during full discovery strategy refresh:', error);
+        return false;
+      }
+    });
+
     // Log handler for debugging
     session.setHandler('log', async (message) => {
       this.log(`WebView: ${message}`);
@@ -250,9 +278,26 @@ class WLEDDriver extends Homey.Driver {
 
     // Handler for discover_devices view to list discovered devices 
     session.setHandler('list_devices', async () => {
+      this.log(`[list_devices] Handler called - refreshing discovery results`);
+      
+      // Force refresh discovery results
+      try {
+        const currentResults = this.discoveryStrategy.getDiscoveryResults();
+        const resultIds = Object.keys(currentResults);
+        this.log(`[list_devices] Refreshed discovery results: Found ${resultIds.length} devices`);
+        
+        // Process each discovery result again to ensure we have the latest data
+        for (const id of resultIds) {
+          const result = currentResults[id];
+          this.onDiscoveryResult(result);
+        }
+      } catch (error) {
+        this.error('[list_devices] Error refreshing discovery results:', error);
+      }
+            
       // Get current discovered devices
       const discoveryResults = Object.values(this.discoveryResults || {});
-      this.log(`[list_devices] Called - found ${discoveryResults.length} discovered devices for pairing`);
+      this.log(`[list_devices] Found ${discoveryResults.length} discovered devices for pairing`);
       
       if (discoveryResults.length === 0) {
         this.log('[list_devices] No discovery results found');
@@ -291,5 +336,4 @@ class WLEDDriver extends Homey.Driver {
   }
 }
 
-module.exports = WLEDDriver;
 module.exports = WLEDDriver;
