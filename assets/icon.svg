@@ -2,27 +2,27 @@
 <!-- Generator: Adobe Illustrator 21.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 267.1 508" style="enable-background:new 0 0 267.1 508;" xml:space="preserve">
-<!-- Pixelated WLED mascot -->
-<g transform="translate(20, 80)">
-	<!-- Main LED body -->
-	<path fill="#000000" d="M113.5,70 h40 v20 h20 v60 h-20 v20 h-40 v-20 h-20 v-60 h20 z"/>
-	
-	<!-- LED eyes -->
-	<path fill="#000000" d="M113.5,90 h10 v10 h-10 z M143.5,90 h10 v10 h-10 z"/>
-	
-	<!-- LED mouth -->
-	<path fill="#000000" d="M123.5,130 h20 v10 h-20 z"/>
-	
-	<!-- Left arm raised -->
-	<path fill="#000000" d="M93.5,110 h-20 v-20 h-20 v-20 h-10 v-10 h20 v-10 h10 v10 h10 v10 h10 z"/>
-	
-	<!-- Right arm raised -->
-	<path fill="#000000" d="M173.5,110 h20 v-20 h20 v-20 h10 v-10 h-20 v-10 h-10 v10 h-10 v10 h-10 z"/>
-	
-	<!-- Left leg -->
-	<path fill="#000000" d="M113.5,170 h10 v30 h-20 v20 h-10 v-20 h10 v-10 h10 z"/>
-	
-	<!-- Right leg -->
-	<path fill="#000000" d="M143.5,170 h10 v10 h10 v10 h10 v20 h-10 v-10 h-10 v-10 h-10 z"/>
-</g>
+	<!-- Pixelated WLED mascot that fills the viewbox better -->
+	<g>
+		<!-- LED body - centered -->
+		<path fill="#000000" d="M93.5,134 h80 v160 h-80 z"/>
+		<!-- LED notches on corners -->
+		<path fill="#000000" d="M93.5,134 v-20 h20 v20 z"/>
+		<path fill="#000000" d="M153.5,134 v-20 h20 v20 z"/>
+		<path fill="#000000" d="M93.5,274 v20 h20 v-20 z"/>
+		<path fill="#000000" d="M153.5,274 v20 h20 v-20 z"/>
+		<!-- LED eyes -->
+		<path fill="#000000" d="M103.5,164 h20 v20 h-20 z"/>
+		<path fill="#000000" d="M143.5,164 h20 v20 h-20 z"/>
+		<!-- LED mouth -->
+		<path fill="#000000" d="M123.5,214 h20 v10 h-20 z"/>
+		<!-- Left arm - single pixel width from middle of body -->
+		<rect fill="#000000" x="23.5" y="214" width="70" height="20"/>
+		<!-- Right arm - single pixel width from middle of body -->
+		<rect fill="#000000" x="173.5" y="214" width="70" height="20"/>
+		<!-- Left leg -->
+		<path fill="#000000" d="M103.5,294 h20 v100 h-20 z"/>
+		<!-- Right leg -->
+		<path fill="#000000" d="M143.5,294 h20 v100 h-20 z"/>
+	</g>
 </svg>
