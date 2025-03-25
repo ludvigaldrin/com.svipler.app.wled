@@ -4,14 +4,14 @@
 <div class="container">
   <div class="title">Adding WLED Device</div>
   
-  <div id="status-card" class="status-card">
+  <div id="status-card" class="status-card loading" style="min-height: 200px; display: flex; flex-direction: column; justify-content: center;">
     <div id="loading-spinner" class="loading-spinner"></div>
-    <div id="success-icon" class="status-icon success-icon">
+    <div id="success-icon" class="status-icon success-icon" style="display: none;">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
       </svg>
     </div>
-    <div id="error-icon" class="status-icon error-icon">
+    <div id="error-icon" class="status-icon error-icon" style="display: none;">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
         <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.59-13L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z"/>
       </svg>
@@ -22,19 +22,6 @@
 </div>
 
 <script>
-  // Apply correct theme
-  document.addEventListener('DOMContentLoaded', function() {
-    // Try to detect Homey's theme
-    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    // Apply theme class
-    if (isDarkMode) {
-      document.body.classList.add('homey-theme-dark');
-    } else {
-      document.body.classList.add('homey-theme-light');
-    }
-  });
-
   // Helper to log to Homey
   function logToHomey(message) {
     // Send log to Homey driver
@@ -53,8 +40,8 @@
   const statusTitle = document.getElementById('status-title');
   const statusMessage = document.getElementById('status-message');
 
-  // Initial state - loading
-  showState('loading');
+  // Initial state is already set with HTML classes and styles
+  // No need to call showState here
 
   // Request the pairing device from the driver
   getPairingDevice();

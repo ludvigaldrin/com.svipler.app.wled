@@ -53,17 +53,4 @@
     logToHomey('Manual button clicked, navigating to manual_entry');
     Homey.showView('manual_entry');
   });
-
-  // Apply correct theme
-  document.addEventListener('DOMContentLoaded', function() {
-    // Try to detect Homey's theme
-    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    // Apply theme class
-    if (isDarkMode) {
-      document.body.classList.add('homey-theme-dark');
-    } else {
-      document.body.classList.add('homey-theme-light');
-    }
-  });
 </script> 
