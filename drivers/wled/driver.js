@@ -163,7 +163,21 @@ class WLEDDriver extends Homey.Driver {
       // Reset discovery results when returning to discovery page
       if (view === 'discover_devices') {
         this.log('Refreshing discovery results for discover_devices view');
-        // Discovery is handled by the page itself
+        
+        // Force refresh discovery results when view is shown again
+        try {
+          const currentResults = this.discoveryStrategy.getDiscoveryResults();
+          const resultIds = Object.keys(currentResults);
+          this.log(`Discovery view refreshed: Found ${resultIds.length} devices`);
+          
+          // Process each discovery result again
+          for (const id of resultIds) {
+            const result = currentResults[id];
+            this.onDiscoveryResult(result);
+          }
+        } catch (error) {
+          this.error('Error refreshing discovery results:', error);
+        }
       }
       
       // Entering the manual entry page
@@ -238,7 +252,15 @@ class WLEDDriver extends Homey.Driver {
     session.setHandler('list_devices', async () => {
       // Get current discovered devices
       const discoveryResults = Object.values(this.discoveryResults || {});
-      this.log(`Discovered ${discoveryResults.length} devices for pairing`);
+      this.log(`[list_devices] Called - found ${discoveryResults.length} discovered devices for pairing`);
+      
+      if (discoveryResults.length === 0) {
+        this.log('[list_devices] No discovery results found');
+      } else {
+        discoveryResults.forEach((result, index) => {
+          this.log(`[list_devices] Discovery result ${index+1}/${discoveryResults.length}: ID=${result.id}, Address=${result.address || 'unknown'}`);
+        });
+      }
       
       const devices = [];
       
@@ -246,21 +268,28 @@ class WLEDDriver extends Homey.Driver {
       for (const discoveryResult of discoveryResults) {
         if (discoveryResult && discoveryResult.address) {
           try {
-            this.log(`Processing discovery result for ${discoveryResult.address}`);
+            this.log(`[list_devices] Processing discovery result for ${discoveryResult.address}`);
             const deviceInfo = await this.getDeviceInfo(discoveryResult.address);
-            this.log(`Found device: ${deviceInfo.name} at ${deviceInfo.settings.address}`);
+            this.log(`[list_devices] Found device: ${deviceInfo.name} at ${deviceInfo.settings.address}`);
             devices.push(deviceInfo);
           } catch (error) {
             // Skip devices with errors
-            this.error(`Error getting info for ${discoveryResult.address}: ${error.message}`);
+            this.error(`[list_devices] Error getting info for ${discoveryResult.address}: ${error.message}`);
           }
         }
       }
       
-      this.log(`Returning ${devices.length} devices for pairing`);
+      this.log(`[list_devices] Returning ${devices.length} devices for pairing`);
+      if (devices.length > 0) {
+        devices.forEach((device, index) => {
+          this.log(`[list_devices] Device ${index+1}/${devices.length}: ${device.name} (${device.data.id})`);
+        });
+      }
+      
       return devices;
     });
   }
 }
 
+module.exports = WLEDDriver;
 module.exports = WLEDDriver;

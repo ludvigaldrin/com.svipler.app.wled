@@ -6,16 +6,18 @@
 
   <form id="manual-form" class="form">
     <div class="form-group">
-      <label for="deviceAddress">IP Address:</label>
-      <input type="text" id="deviceAddress" name="deviceAddress" required placeholder="192.168.x.x">
+      <label for="deviceAddress" style="font-size: 16px; margin-bottom: 8px;">IP ADDRESS:</label>
+      <input type="text" id="deviceAddress" name="deviceAddress" required placeholder="192.168.x.x" 
+        style="font-size: 18px; padding: 15px; border-radius: 10px; margin-bottom: 10px;"
+        pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" title="Please enter a valid IP address">
     </div>
     
     <div class="button-container">
-      <button id="testConnectionBtn" type="button" class="primary-button">Test Connection</button>
+      <button id="testConnectionBtn" type="button" class="primary-button" style="font-size: 16px; padding: 12px 24px;">Test Connection</button>
     </div>
   </form>
 
-  <div id="device-card" class="device-card">
+  <div id="device-card" class="device-item" style="max-width: 300px; margin: 20px auto; display: none;">
     <div id="device-icon" class="device-icon">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
         <rect x="4" y="12" width="24" height="8" rx="4" ry="4" fill="var(--text-color-secondary)"/>
@@ -24,12 +26,16 @@
         <circle cx="23" cy="16" r="2" fill="var(--accent-color)"/>
       </svg>
     </div>
-    <div class="device-name" id="device-name"></div>
-    <div class="device-ip" id="device-ip"></div>
-    <div class="device-status" id="device-status"></div>
+    <div id="device-check" class="check-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+        <path fill="white" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+      </svg>
+    </div>
+    <div id="device-name" class="device-name"></div>
+    <div id="device-ip" class="device-ip"></div>
   </div>
   
-  <div id="add-container" class="add-container">
+  <div id="add-container" class="button-container" style="display: none;">
     <button id="addDeviceBtn" class="primary-button" style="min-width: 200px; font-size: 16px; padding: 12px 30px;">Add Device</button>
   </div>
 </div>
@@ -53,10 +59,10 @@
   
   // Get device card elements
   const deviceCard = document.getElementById('device-card');
+  const deviceCheck = document.getElementById('device-check');
   const addContainer = document.getElementById('add-container');
   const deviceNameElement = document.getElementById('device-name');
   const deviceIpElement = document.getElementById('device-ip');
-  const deviceStatusElement = document.getElementById('device-status');
   
   // Reset UI state when the page loads
   deviceAddressInput.value = '';
@@ -71,7 +77,7 @@
     const address = deviceAddressInput.value.trim();
     
     if (!address) {
-      showStatus('error', 'Please enter an IP address');
+      alert('Please enter a valid IP address');
       return;
     }
     
@@ -81,11 +87,10 @@
     
     // Reset UI
     deviceCard.style.display = 'none';
+    deviceCard.classList.remove('selected');
+    deviceCheck.style.display = 'none';
     addContainer.style.display = 'none';
     discoveredDeviceData = null;
-    
-    // Show testing status
-    showStatus('loading', 'Testing connection...');
     
     // Send test request to driver
     Homey.emit('test_connection', { address })
@@ -98,40 +103,29 @@
           discoveredDeviceData = result.deviceData;
           
           // Show success message and device info
-          showStatus('success', 'Connection successful!');
-          displayDeviceInfo(
-            discoveredDeviceData.name, 
-            discoveredDeviceData.settings.address, 
-            'Connected'
-          );
+          deviceNameElement.textContent = discoveredDeviceData.name;
+          deviceIpElement.textContent = discoveredDeviceData.settings.address;
+          deviceCard.style.display = 'flex';
+          deviceCard.classList.add('selected');
+          deviceCheck.style.display = 'flex';
           
           // Show add button
-          addContainer.style.display = 'block';
-          addDeviceBtn.style.display = 'block';
+          addContainer.style.display = 'flex';
         } else {
-          showStatus('error', result.message || 'Connection failed');
-          displayDeviceInfo('Unknown device', address, 'Connection failed');
-          
-          // Don't show any buttons if there was an error
-          addContainer.style.display = 'none';
+          alert(result.message || 'Connection failed');
         }
       })
       .catch(error => {
         testConnectionBtn.disabled = false;
         testConnectionBtn.textContent = 'Test Connection';
-        
-        showStatus('error', error.message || 'Connection test failed');
-        displayDeviceInfo('Error', address, 'Unable to connect');
-        
-        // Don't show any buttons if there was an error
-        addContainer.style.display = 'none';
+        alert(error.message || 'Connection test failed');
       });
   });
 
   // Add device button
   addDeviceBtn.addEventListener('click', function() {
     if (!discoveredDeviceData) {
-      showStatus('error', 'No device information available');
+      alert('No device information available');
       return;
     }
     
@@ -150,46 +144,25 @@
       })
       .catch(error => {
         logToHomey(`Error in device selection: ${error.message || error}`);
-        showStatus('error', 'Failed to add device');
+        alert('Failed to add device: ' + (error.message || ''));
         // Re-enable button
         addDeviceBtn.disabled = false;
         addDeviceBtn.textContent = 'Add Device';
       });
   });
   
-  // Helper to show status in the device card
-  function showStatus(type, message) {
-    deviceStatusElement.textContent = message;
-    deviceStatusElement.className = 'device-status';
-    
-    if (type === 'success') {
-      deviceStatusElement.classList.add('success');
-    } else if (type === 'error') {
-      deviceStatusElement.classList.add('error');
-    } else if (type === 'loading') {
-      deviceStatusElement.classList.add('loading');
+  // Toggle device selection
+  deviceCard.addEventListener('click', function() {
+    if (discoveredDeviceData) {
+      if (deviceCard.classList.contains('selected')) {
+        deviceCard.classList.remove('selected');
+        deviceCheck.style.display = 'none';
+        addContainer.style.display = 'none';
+      } else {
+        deviceCard.classList.add('selected');
+        deviceCheck.style.display = 'flex';
+        addContainer.style.display = 'flex';
+      }
     }
-  }
-  
-  // Helper to display device info
-  function displayDeviceInfo(name, address, status) {
-    deviceNameElement.textContent = name || 'Unknown device';
-    deviceIpElement.textContent = address;
-    
-    // Set status class after setting text to ensure correct styling
-    deviceStatusElement.textContent = '';
-    deviceStatusElement.className = 'device-status';
-    
-    if (status === 'Connected') {
-      deviceStatusElement.classList.add('success');
-      deviceStatusElement.textContent = 'Connected';
-    } else if (status.includes('Error') || status.includes('failed') || status.includes('Unable')) {
-      deviceStatusElement.classList.add('error');
-      deviceStatusElement.textContent = status;
-    } else {
-      deviceStatusElement.textContent = status;
-    }
-    
-    deviceCard.style.display = 'flex';
-  }
+  });
 </script>

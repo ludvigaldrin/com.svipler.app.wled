@@ -30,6 +30,12 @@ body {
   padding: 20px;
   margin-bottom: 20px;
   background-color: var(--background-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .title {
@@ -105,10 +111,11 @@ body {
 
 /* Device List */
 .device-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 15px;
   margin-top: 20px;
+  width: 100%;
 }
 
 .device-item {
@@ -120,11 +127,14 @@ body {
   flex-direction: column;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  height: 120px;
 }
 
 .device-item:hover {
   background-color: var(--card-background-selected);
   border-color: var(--card-border-selected);
+  transform: translateY(-2px);
 }
 
 .device-item.selected {
@@ -132,15 +142,43 @@ body {
   border-color: var(--card-border-selected);
 }
 
+.check-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  background-color: var(--accent-color);
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.device-item.selected .check-icon {
+  display: flex;
+}
+
 .device-name {
   font-weight: 500;
-  margin-bottom: 5px;
+  margin-top: 45px;
+  text-align: center;
   color: var(--text-color);
 }
 
 .device-ip {
   font-size: 14px;
   color: var(--text-color-secondary);
+  text-align: center;
+  margin-top: 5px;
+}
+
+.device-icon {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
 }
 
 .device-card {
@@ -153,12 +191,6 @@ body {
   max-width: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.device-icon {
-  margin: 0 auto 10px;
-  width: 40px;
-  height: 40px;
 }
 
 .device-icon svg {
@@ -248,60 +280,63 @@ input {
   background-color: rgba(0, 192, 242, 0.1);
 }
 
-/* Status Card for Add Device Page */
+/* Status Card */
 .status-card {
   background-color: var(--card-background);
   border-radius: 16px;
   padding: 30px 20px;
-  margin: 20px 0;
-  width: 100%;
-  max-width: 100%;
+  margin: 20px auto;
+  min-height: 200px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   text-align: center;
   position: relative;
   overflow: hidden;
   border-left: 4px solid var(--accent-color);
   transition: border-color 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .status-card.loading {
-  border-left: 4px solid var(--accent-color);
+  border-left-color: var(--accent-color);
 }
 
 .status-card.success {
-  border-left: 4px solid var(--success-color);
+  border-left-color: var(--success-color);
 }
 
 .status-card.error {
-  border-left: 4px solid var(--error-color);
+  border-left-color: var(--error-color);
 }
 
 .loading-spinner {
-  width: 60px;
-  height: 60px;
-  border: 5px solid rgba(0, 192, 242, 0.2);
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top: 3px solid var(--accent-color);
   border-radius: 50%;
-  border-top-color: var(--accent-color);
+  width: 50px;
+  height: 50px;
   animation: spin 1s linear infinite;
-  margin: 0 auto 25px;
-  display: block;
+  margin-bottom: 20px;
 }
 
 .status-icon {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 20px;
-  display: none;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 20px;
 }
 
 .success-icon svg {
   fill: var(--success-color);
-  filter: drop-shadow(0 2px 4px rgba(76, 175, 80, 0.3));
+  width: 100%;
+  height: 100%;
 }
 
 .error-icon svg {
   fill: var(--error-color);
-  filter: drop-shadow(0 2px 4px rgba(244, 67, 54, 0.3));
+  width: 100%;
+  height: 100%;
 }
 
 .status-title {
@@ -313,6 +348,7 @@ input {
 .status-message {
   font-size: 16px;
   color: var(--text-color-secondary);
+  line-height: 1.4;
 }
 
 /* Text styles */
@@ -326,4 +362,28 @@ input {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Button Container */
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+  width: 100%;
+}
+
+.add-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+  width: 100%;
+}
+
+.no-devices {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-color-secondary);
+  background-color: var(--card-background);
+  border-radius: 12px;
+  grid-column: 1 / -1;
 } 

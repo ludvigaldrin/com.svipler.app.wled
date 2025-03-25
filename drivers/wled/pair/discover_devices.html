@@ -3,18 +3,18 @@
 
 <div class="container">
   <div class="title">Select WLED Device</div>
-
+  
   <div id="device-list" class="device-list">
     <!-- Devices will be added here dynamically -->
     <div id="no-devices" class="no-devices">
-      <div class="loading-indicator"></div>
-      Searching for WLED devices...
+      <div class="loading-spinner" style="width: 40px; height: 40px; margin: 10px auto;"></div>
+      <div>Searching for WLED devices...</div>
     </div>
   </div>
 
   <!-- Add Device button in its own container -->
   <div id="button-container" class="button-container">
-    <button id="discovery-add-button" class="primary-button">Add Selected Device</button>
+    <button id="discovery-add-button" class="primary-button" style="display: none;">Add Selected Device</button>
   </div>
 </div>
 
@@ -31,15 +31,13 @@
 
   // Store selected device
   let selectedDevice = null;
+  let isDiscoveryInProgress = false; // Flag to prevent multiple discovery processes
 
   // Get references to elements
   const deviceListElement = document.getElementById('device-list');
   const noDevicesElement = document.getElementById('no-devices');
   const buttonContainer = document.getElementById('button-container');
   const discoveryAddButton = document.getElementById('discovery-add-button');
-
-  // Hide the Add button initially
-  discoveryAddButton.style.display = 'none';
   
   // Hide the Homey Next button (in addition to CSS)
   try {
@@ -53,49 +51,87 @@
     logToHomey('Error trying to hide Next button: ' + e.message);
   }
 
-  // Request devices only once when the page loads
-  requestDevices();
-  
-  // Function to request devices from the driver
-  function requestDevices() {
-    logToHomey('Requesting devices from driver...');
+  // Start fresh discovery
+  function startDiscovery() {
+    // If discovery is already in progress, don't start another one
+    if (isDiscoveryInProgress) {
+      logToHomey('Discovery already in progress, skipping new request');
+      return;
+    }
     
+    // Set flag to prevent multiple discovery processes
+    isDiscoveryInProgress = true;
+    
+    // Reset UI state
+    selectedDevice = null;
+    discoveryAddButton.style.display = 'none';
+    
+    // Add detailed logging
+    logToHomey('=== DISCOVERY STARTED ===');
+    
+    // First clear all existing devices
+    deviceListElement.innerHTML = `
+      <div id="no-devices" class="no-devices">
+        <div class="loading-spinner" style="width: 40px; height: 40px; margin: 10px auto;"></div>
+        <div>Searching for WLED devices...</div>
+      </div>`;
+    
+    // Get the reference to the no devices element again after recreating it
+    const noDevicesElement = document.getElementById('no-devices');
+    noDevicesElement.style.display = 'block';
+    
+    logToHomey(`Cleared device list container and reset to loading state`);
+    
+    // Request devices
+    logToHomey('Sending list_devices request to driver...');
     Homey.emit('list_devices')
       .then(devices => {
-        logToHomey(`Received ${devices.length} devices from Homey`);
+        logToHomey(`Received ${devices.length} devices from driver, with IDs: ${devices.map(d => d.data.id).join(', ')}`);
         updateDeviceList(devices);
+        isDiscoveryInProgress = false; // Reset flag when done
       })
       .catch(error => {
         logToHomey(`Error getting devices: ${error.message || error}`);
-        noDevicesElement.innerHTML = `
-          <div style="color: var(--error-color); font-weight: bold; margin-bottom: 10px;">Error loading devices</div>
-          <div>Please try again or add your device manually</div>`;
+        if (deviceListElement.querySelector('#no-devices')) {
+          const noDevicesEl = deviceListElement.querySelector('#no-devices');
+          noDevicesEl.innerHTML = `
+            <div style="color: var(--error-color); font-weight: bold; margin-bottom: 10px;">Error loading devices</div>
+            <div>Please try again or add your device manually</div>`;
+        }
+        isDiscoveryInProgress = false; // Reset flag on error
       });
   }
-
+  
   // Function to update the device list UI
   function updateDeviceList(devices) {
-    // Clear any existing devices first
-    const existingDevices = document.querySelectorAll('.device-item');
-    existingDevices.forEach(item => item.remove());
+    logToHomey(`Updating device list with ${devices.length} devices`);
+    
+    // Empty the entire device list
+    deviceListElement.innerHTML = '';
+    logToHomey(`Cleared device list for fresh update`);
 
+    // Hide the add button
+    discoveryAddButton.style.display = 'none';
+    
     if (devices.length === 0) {
-      noDevicesElement.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 10px;">No WLED devices found</div>
-        <div>Try adding your device manually</div>`;
-      noDevicesElement.style.display = 'block';
+      logToHomey('No devices found, showing empty state message');
+      deviceListElement.innerHTML = `
+        <div id="no-devices" class="no-devices">
+          <div style="font-weight: bold; margin-bottom: 10px;">No WLED devices found</div>
+          <div>Try adding your device manually</div>
+        </div>`;
       return;
     }
 
-    // Hide the no devices message
-    noDevicesElement.style.display = 'none';
-
     // Create device list items
     devices.forEach((device, index) => {
+      logToHomey(`Creating UI element for device ${index+1}/${devices.length}: ${device.name} (${device.settings.address})`);
+      
       const deviceItem = document.createElement('div');
       deviceItem.className = 'device-item';
       deviceItem.dataset.index = index;
       deviceItem.dataset.deviceJson = JSON.stringify(device);
+      deviceItem.dataset.deviceId = device.data.id;
       deviceItem.setAttribute('aria-label', `Select ${device.name}`);
 
       // Add icon for WLED
@@ -148,47 +184,38 @@
         logToHomey(`Selected device: ${device.name} (${device.settings.address})`);
       });
     });
+    
+    logToHomey(`Device list updated with ${devices.length} devices`);
+    logToHomey(`Final device element count: ${document.querySelectorAll('.device-item').length}`);
   }
 
-  // Handle add button click
-  discoveryAddButton.addEventListener('click', function () {
-    // Get the currently selected device element
-    const selectedElement = document.querySelector('.device-item.selected');
+  // Handle the add device button
+  discoveryAddButton.addEventListener('click', function() {
+    if (selectedDevice) {
+      logToHomey(`Add device button clicked for: ${selectedDevice.name}`);
+      
+      // Send the selected device to the driver
+      Homey.emit('selected_device', selectedDevice)
+        .then(() => {
+          logToHomey('Device selection confirmed, moving to add_device view');
+          // Navigate to the add device page
+          Homey.showView('add_device');
+        })
+        .catch(error => {
+          logToHomey(`Error selecting device: ${error.message || error}`);
+        });
+    }
+  });
 
-    // Try to get device data from the selected element
-    if (selectedElement && selectedElement.dataset.deviceJson) {
-      try {
-        // Disable the button to prevent multiple clicks
-        discoveryAddButton.disabled = true;
-        discoveryAddButton.textContent = 'Adding...';
-        
-        const deviceData = JSON.parse(selectedElement.dataset.deviceJson);
-        logToHomey('Selected device from UI: ' + JSON.stringify(deviceData, null, 2));
+  // Initial page load discovery
+  startDiscovery();
 
-        // Send the selected device to the driver
-        logToHomey(`Selecting device: ${deviceData.name} (${deviceData.settings.address})`);
-        
-        // Emit the selected device to the driver
-        Homey.emit('selected_device', deviceData)
-          .then(() => {
-            logToHomey('Device selection sent to driver');
-            // Navigate to add_device view
-            Homey.showView('add_device');
-          })
-          .catch(error => {
-            logToHomey(`Error sending device selection: ${error.message || error}`);
-            // Re-enable the button if there's an error
-            discoveryAddButton.disabled = false;
-            discoveryAddButton.textContent = 'Add Selected Device';
-          });
-      } catch (error) {
-        logToHomey('Error parsing device data: ' + error.message);
-        // Re-enable the button if there's an error
-        discoveryAddButton.disabled = false;
-        discoveryAddButton.textContent = 'Add Selected Device';
-      }
-    } else {
-      logToHomey('No device selected in UI');
+  // Listen for view changes to restart discovery when this view is shown again
+  Homey.on('showView', function(viewId) {
+    if (viewId === 'discover_devices') {
+      logToHomey('=== DISCOVER VIEW SHOWN AGAIN ===');
+      // Start a fresh discovery every time we return to this view
+      startDiscovery();
     }
   });
 </script>
