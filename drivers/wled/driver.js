@@ -11,6 +11,51 @@ class WLEDDriver extends Homey.Driver {
     // Initialize discovery results storage
     this.discoveryResults = {};
 
+    // Register an API endpoint to list devices directly
+    this.homey.api.registerApiEndpoint('list_devices', {
+      method: 'GET',
+      path: '/list_devices',
+      fn: async (args, callback) => {
+        try {
+          // Force refresh discovery results
+          const currentResults = this.discoveryStrategy.getDiscoveryResults();
+          const resultIds = Object.keys(currentResults);
+          this.log(`API list_devices: Refreshed discovery results - found ${resultIds.length} devices`);
+          
+          // Process each discovery result to ensure we have the latest data
+          for (const id of resultIds) {
+            const result = currentResults[id];
+            this.onDiscoveryResult(result);
+          }
+          
+          // Get current discovered devices
+          const discoveryResults = Object.values(this.discoveryResults || {});
+          this.log(`API list_devices: Found ${discoveryResults.length} discovered devices`);
+          
+          // Process each discovery result to get full device info
+          const devices = [];
+          for (const discoveryResult of discoveryResults) {
+            if (discoveryResult && discoveryResult.address) {
+              try {
+                this.log(`API list_devices: Processing result for ${discoveryResult.address}`);
+                const deviceInfo = await this.getDeviceInfo(discoveryResult.address);
+                this.log(`API list_devices: Found device: ${deviceInfo.name} at ${deviceInfo.settings.address}`);
+                devices.push(deviceInfo);
+              } catch (error) {
+                this.error(`API list_devices: Error getting info for ${discoveryResult.address}: ${error.message}`);
+              }
+            }
+          }
+          
+          this.log(`API list_devices: Returning ${devices.length} devices`);
+          callback(null, devices);
+        } catch (err) {
+          this.error('API list_devices error:', err);
+          callback(err);
+        }
+      }
+    });
+
     // Get the discovery strategy
     try {
       this.discoveryStrategy = this.getDiscoveryStrategy();
