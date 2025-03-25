@@ -156,9 +156,9 @@
     }
   });
 
-  // Direct fetch function that doesn't depend on emissions or callbacks
+  // Function to fetch devices using the proper SDK v3 method
   function fetchDevices() {
-    logToHomey('Requesting devices via list_devices');
+    logToHomey('Requesting devices via list_devices handler');
     
     // Show loading state
     deviceListElement.innerHTML = `
@@ -167,10 +167,14 @@
         <div>Searching for WLED devices...</div>
       </div>`;
       
-    // Direct call to get devices - works with any page state
-    Homey.api('GET', '/list_devices', null, (err, devices) => {
-      if (err) {
-        logToHomey(`Error fetching devices: ${err}`);
+    // Use the proper SDK v3 method to get devices
+    Homey.emit('list_devices')
+      .then(devices => {
+        logToHomey(`Received ${devices.length} devices from driver`);
+        updateDeviceList(devices);
+      })
+      .catch(error => {
+        logToHomey(`Error fetching devices: ${error.message || error}`);
         deviceListElement.innerHTML = `
           <div id="no-devices" class="no-devices">
             <div style="color: var(--error-color); font-weight: bold; margin-bottom: 10px;">Error loading devices</div>
@@ -182,12 +186,7 @@
         if (retryButton) {
           retryButton.addEventListener('click', fetchDevices);
         }
-        return;
-      }
-
-      logToHomey(`Successfully fetched ${devices.length} devices via API`);
-      updateDeviceList(devices);
-    });
+      });
   }
 
   // Fetch devices on page load
@@ -196,7 +195,7 @@
   // Reload devices whenever this view is shown (works for subsequent visits)
   Homey.on('showView', function(viewId) {
     if (viewId === 'discover_devices') {
-      logToHomey('→→→ DISCOVERY VIEW SHOWN AGAIN - will reload devices');
+      logToHomey('→→→ DISCOVER VIEW SHOWN AGAIN - will reload devices');
       // Directly fetch devices on every view show
       fetchDevices();
     }
