@@ -147,12 +147,18 @@ class WLEDDriver extends Homey.Driver {
   async onPair(session) {
     // Track view state
     let activeView = '';
+    let previousView = '';
     let pairingDevice = null;
+    let lastDiscoveryRefresh = 0;
+    let manuallyReloadedViews = {};
 
     // View navigation handler
     session.setHandler('showView', async (view) => {
+      this.log(`Pairing: navigated to view ${view} from ${activeView}`);
+      
+      // Store previous view before updating
+      previousView = activeView;
       activeView = view;
-      this.log(`Pairing: navigated to view ${view}`);
       
       // Reset device state on certain view changes
       if (view === 'start') {
@@ -160,16 +166,23 @@ class WLEDDriver extends Homey.Driver {
         pairingDevice = null;
       }
       
-      // Reset discovery results when returning to discovery page
-      if (view === 'discover_devices') {
-        this.log('View changed to discover_devices - refreshing discovery results');
-        // Force refresh discovery results when view is shown again
+      // Special handling for discover_devices view - only reload once per session
+      if (view === 'discover_devices' && previousView !== '' && previousView !== 'discover_devices' && !manuallyReloadedViews[view]) {
+        this.log('Coming back to discover_devices view from a different view');
+        manuallyReloadedViews[view] = true;
+        
+        // Just refresh discovery results and rely on HTML page's onload
         try {
+          // Clear existing discovery results to ensure fresh data
+          this.discoveryResults = {};
+          this.log('Cleared existing discovery results');
+          
+          // Get fresh discovery results
           const currentResults = this.discoveryStrategy.getDiscoveryResults();
           const resultIds = Object.keys(currentResults);
-          this.log(`Discovery view refreshed: Found ${resultIds.length} devices`);
+          this.log(`Fresh discover_devices refresh: Found ${resultIds.length} devices`);
           
-          // Process each discovery result again
+          // Process each discovery result again to ensure fresh data
           for (const id of resultIds) {
             const result = currentResults[id];
             this.onDiscoveryResult(result);
@@ -179,10 +192,38 @@ class WLEDDriver extends Homey.Driver {
         }
       }
       
+      // Special handling for discover_devices view
+      if (view === 'discover_devices') {
+        const now = Date.now();
+        
+        // Refresh discovery results with throttling (max once per second)
+        if (now - lastDiscoveryRefresh > 1000) {
+          this.log('Refreshing discovery results');
+          lastDiscoveryRefresh = now;
+          
+          try {
+            // Get fresh discovery results
+            const currentResults = this.discoveryStrategy.getDiscoveryResults();
+            const resultIds = Object.keys(currentResults);
+            this.log(`Discovery refreshed: Found ${resultIds.length} devices`);
+            
+            // Process each discovery result
+            for (const id of resultIds) {
+              const result = currentResults[id];
+              this.onDiscoveryResult(result);
+            }
+              
+          } catch (error) {
+            this.error('Error refreshing discovery results:', error);
+          }
+        } else {
+          this.log('Skipping discovery refresh - throttled');
+        }
+      }
+      
       // Entering the manual entry page
       if (view === 'manual_entry') {
         this.log('Entering manual entry page');
-        // UI reset is handled by the page itself
       }
     });
 
@@ -277,10 +318,14 @@ class WLEDDriver extends Homey.Driver {
 
     // Handler for discover_devices view to list discovered devices 
     session.setHandler('list_devices', async () => {
-      // Always force a refresh of discovery results when list_devices is called
-      this.log('list_devices called - forcing refresh of discovery results');
+      // Always force a clean refresh of discovery results when list_devices is called
+      this.log('list_devices called - forcing clean refresh of discovery results');
       
       try {
+        // Clear existing discovery results to ensure fresh data
+        this.discoveryResults = {};
+        this.log('Cleared existing discovery results');
+        
         // Get fresh discovery results
         const currentResults = this.discoveryStrategy.getDiscoveryResults();
         const resultIds = Object.keys(currentResults);

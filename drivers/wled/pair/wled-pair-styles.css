@@ -267,18 +267,30 @@ input {
 }
 
 .secondary-button {
-  background-color: transparent;
-  color: var(--accent-color);
-  border: 1px solid var(--accent-color);
+  background-color: var(--card-background);
+  color: var(--text-color);
+  border: 1px solid var(--card-border);
   border-radius: 8px;
-  padding: 10px 16px;
+  padding: 10px 15px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  display: inline-block;
+  text-align: center;
 }
 
 .secondary-button:hover {
-  background-color: rgba(0, 192, 242, 0.1);
+  background-color: var(--card-background-selected);
+  border-color: var(--accent-color);
+}
+
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--card-background);
+  border-color: var(--card-border);
 }
 
 /* Status Card */

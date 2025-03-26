@@ -16,188 +16,340 @@
   <div id="button-container" class="button-container">
     <button id="discovery-add-button" class="primary-button" style="display: none;">Add Selected Device</button>
   </div>
+  
+  <!-- Refresh button -->
+  <div class="button-container">
+    <button id="refresh-button" class="secondary-button">Refresh Device List</button>
+  </div>
 </div>
 
 <script>
-  // Helper to log to Homey
-  function logToHomey(message) {
-    // Send log to Homey driver
-    Homey.emit('log', `[DISCOVER DEVICES] ${message}`)
-      .catch(err => console.error('Error logging to Homey:', err));
-  }
-
-  // Debug logging
-  logToHomey('DISCOVER DEVICES PAGE LOADED');
-
-  // Store selected device
-  let selectedDevice = null;
+  console.log('DEBUG: DISCOVER DEVICES PAGE LOADED');
   
-  // Get references to elements
-  const deviceListElement = document.getElementById('device-list');
-  const noDevicesElement = document.getElementById('no-devices');
-  const discoveryAddButton = document.getElementById('discovery-add-button');
-  
-  // Hide the Homey Next button (in addition to CSS)
-  try {
-    if (window.parent && window.parent.document) {
-      const nextButton = window.parent.document.querySelector('#homey-header-right-button');
-      if (nextButton) {
-        nextButton.style.display = 'none';
+  // Check if script has already been loaded to prevent redeclaration
+  if (window.wledDiscoveryInitialized !== true) {
+    console.log('DEBUG: First time load - initializing discovery page');
+    window.wledDiscoveryInitialized = true;
+    
+    // Helper to log to Homey
+    function logToHomey(message) {
+      // Send log to Homey driver
+      Homey.emit('log', `[DISCOVER DEVICES] ${message}`)
+        .catch(err => console.error('Error logging to Homey:', err));
+    }
+
+    // Debug logging
+    logToHomey('DISCOVER DEVICES PAGE LOADED');
+
+    // Store selected device
+    window.selectedDevice = null;
+    
+    // Get references to elements
+    const deviceListElement = document.getElementById('device-list');
+    const noDevicesElement = document.getElementById('no-devices');
+    const discoveryAddButton = document.getElementById('discovery-add-button');
+    const refreshButton = document.getElementById('refresh-button');
+    
+    // Store globally for use on subsequent loads
+    window.deviceListElement = deviceListElement;
+    window.noDevicesElement = noDevicesElement;
+    window.discoveryAddButton = discoveryAddButton;
+    window.refreshButton = refreshButton;
+    
+    // Hide the Homey Next button (in addition to CSS)
+    try {
+      if (window.parent && window.parent.document) {
+        const nextButton = window.parent.document.querySelector('#homey-header-right-button');
+        if (nextButton) {
+          nextButton.style.display = 'none';
+        }
       }
-    }
-  } catch (e) {
-    logToHomey('Error trying to hide Next button: ' + e.message);
-  }
-
-  // Function to update the device list UI
-  function updateDeviceList(devices) {
-    logToHomey(`Updating device list with ${devices.length} devices`);
-    
-    // Clear all existing content from device list
-    deviceListElement.innerHTML = '';
-    
-    // Hide the add button
-    discoveryAddButton.style.display = 'none';
-    
-    if (!devices || devices.length === 0) {
-      logToHomey('No devices found, showing empty state message');
-      deviceListElement.innerHTML = `
-        <div id="no-devices" class="no-devices">
-          <div style="font-weight: bold; margin-bottom: 10px;">No WLED devices found</div>
-          <div>Try adding your device manually</div>
-        </div>`;
-      return;
+    } catch (e) {
+      logToHomey('Error trying to hide Next button: ' + e.message);
     }
 
-    // Create device list items
-    let deviceCount = 0;
-    
-    devices.forEach((device, index) => {
-      logToHomey(`Creating device element ${index+1}/${devices.length}: ${device.name} (${device.settings.address})`);
+    // Function to update the device list UI
+    window.updateDeviceList = function(devices) {
+      logToHomey(`Updating device list with ${devices.length} devices`);
       
-      const deviceItem = document.createElement('div');
-      deviceItem.className = 'device-item';
-      deviceItem.dataset.index = index;
-      deviceItem.dataset.deviceJson = JSON.stringify(device);
-      deviceItem.dataset.deviceId = device.data.id;
-      deviceItem.setAttribute('aria-label', `Select ${device.name}`);
-
-      // Add icon for WLED
-      const deviceIcon = document.createElement('div');
-      deviceIcon.className = 'device-icon';
-      deviceIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-        <rect x="4" y="12" width="24" height="8" rx="4" ry="4" fill="var(--text-color-secondary)"/>
-        <circle cx="9" cy="16" r="2" fill="var(--accent-color)"/>
-        <circle cx="16" cy="16" r="2" fill="var(--accent-color)"/>
-        <circle cx="23" cy="16" r="2" fill="var(--accent-color)"/>
-      </svg>`;
-
-      // Add check icon 
-      const checkIcon = document.createElement('div');
-      checkIcon.className = 'check-icon';
-      checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-        <path fill="white" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
-      </svg>`;
-
-      const deviceName = document.createElement('div');
-      deviceName.className = 'device-name';
-      deviceName.textContent = device.name;
-
-      const deviceIp = document.createElement('div');
-      deviceIp.className = 'device-ip';
-      deviceIp.textContent = device.settings.address;
-
-      deviceItem.appendChild(deviceIcon);
-      deviceItem.appendChild(checkIcon);
-      deviceItem.appendChild(deviceName);
-      deviceItem.appendChild(deviceIp);
-      deviceListElement.appendChild(deviceItem);
-      deviceCount++;
-
-      // Add selection event
-      deviceItem.addEventListener('click', function () {
-        // Remove selection from all items
-        document.querySelectorAll('.device-item').forEach(item => {
-          item.classList.remove('selected');
-        });
-
-        // Add selection to this item
-        this.classList.add('selected');
-
-        // Store selected device
-        selectedDevice = device;
-        
-        // Show add button when a device is selected
-        discoveryAddButton.style.display = 'block';
-        
-        logToHomey(`Selected device: ${device.name} (${device.settings.address})`);
-      });
-    });
-    
-    logToHomey(`Created ${deviceCount} device elements`);
-    logToHomey(`Final device list HTML length: ${deviceListElement.innerHTML.length}`);
-  }
-
-  // Handle the add device button
-  discoveryAddButton.addEventListener('click', function() {
-    if (selectedDevice) {
-      logToHomey(`Add device button clicked for: ${selectedDevice.name}`);
+      // Clear all existing content from device list
+      deviceListElement.innerHTML = '';
       
-      // Send the selected device to the driver
-      Homey.emit('selected_device', selectedDevice)
-        .then(() => {
-          logToHomey('Device selection confirmed, moving to add_device view');
-          // Navigate to the add device page
-          Homey.showView('add_device');
-        })
-        .catch(error => {
-          logToHomey(`Error selecting device: ${error.message || error}`);
-        });
-    }
-  });
-
-  // Function to fetch devices using the proper SDK v3 method
-  function fetchDevices() {
-    logToHomey('Requesting devices via list_devices handler');
-    
-    // Show loading state
-    deviceListElement.innerHTML = `
-      <div id="no-devices" class="no-devices">
-        <div class="loading-spinner" style="width: 40px; height: 40px; margin: 10px auto;"></div>
-        <div>Searching for WLED devices...</div>
-      </div>`;
+      // Hide the add button
+      discoveryAddButton.style.display = 'none';
       
-    // Use the proper SDK v3 method to get devices
-    Homey.emit('list_devices')
-      .then(devices => {
-        logToHomey(`Received ${devices.length} devices from driver`);
-        updateDeviceList(devices);
-      })
-      .catch(error => {
-        logToHomey(`Error fetching devices: ${error.message || error}`);
+      if (!devices || devices.length === 0) {
+        logToHomey('No devices found, showing empty state message');
         deviceListElement.innerHTML = `
           <div id="no-devices" class="no-devices">
-            <div style="color: var(--error-color); font-weight: bold; margin-bottom: 10px;">Error loading devices</div>
-            <div>Please try again or add your device manually</div>
-            <button id="retry-button" class="secondary-button" style="margin-top: 15px;">Retry</button>
+            <div style="font-weight: bold; margin-bottom: 10px;">No WLED devices found</div>
+            <div>Try adding your device manually</div>
           </div>`;
+        return;
+      }
+
+      // Create device list items
+      let deviceCount = 0;
+      
+      devices.forEach((device, index) => {
+        logToHomey(`Creating device element ${index+1}/${devices.length}: ${device.name} (${device.settings.address})`);
         
-        const retryButton = deviceListElement.querySelector('#retry-button');
-        if (retryButton) {
-          retryButton.addEventListener('click', fetchDevices);
-        }
+        const deviceItem = document.createElement('div');
+        deviceItem.className = 'device-item';
+        deviceItem.dataset.index = index;
+        deviceItem.dataset.deviceJson = JSON.stringify(device);
+        deviceItem.dataset.deviceId = device.data.id;
+        deviceItem.setAttribute('aria-label', `Select ${device.name}`);
+
+        // Add icon for WLED
+        const deviceIcon = document.createElement('div');
+        deviceIcon.className = 'device-icon';
+        deviceIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+          <rect x="4" y="12" width="24" height="8" rx="4" ry="4" fill="var(--text-color-secondary)"/>
+          <circle cx="9" cy="16" r="2" fill="var(--accent-color)"/>
+          <circle cx="16" cy="16" r="2" fill="var(--accent-color)"/>
+          <circle cx="23" cy="16" r="2" fill="var(--accent-color)"/>
+        </svg>`;
+
+        // Add check icon 
+        const checkIcon = document.createElement('div');
+        checkIcon.className = 'check-icon';
+        checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+          <path fill="white" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+        </svg>`;
+
+        const deviceName = document.createElement('div');
+        deviceName.className = 'device-name';
+        deviceName.textContent = device.name;
+
+        const deviceIp = document.createElement('div');
+        deviceIp.className = 'device-ip';
+        deviceIp.textContent = device.settings.address;
+
+        deviceItem.appendChild(deviceIcon);
+        deviceItem.appendChild(checkIcon);
+        deviceItem.appendChild(deviceName);
+        deviceItem.appendChild(deviceIp);
+        deviceListElement.appendChild(deviceItem);
+        deviceCount++;
+
+        // Add selection event
+        deviceItem.addEventListener('click', function () {
+          // Remove selection from all items
+          document.querySelectorAll('.device-item').forEach(item => {
+            item.classList.remove('selected');
+          });
+
+          // Add selection to this item
+          this.classList.add('selected');
+
+          // Store selected device
+          window.selectedDevice = device;
+          
+          // Show add button when a device is selected
+          discoveryAddButton.style.display = 'block';
+          
+          logToHomey(`Selected device: ${device.name} (${device.settings.address})`);
+        });
       });
-  }
-
-  // Fetch devices on page load
-  fetchDevices();
-
-  // Reload devices whenever this view is shown (works for subsequent visits)
-  Homey.on('showView', function(viewId) {
-    if (viewId === 'discover_devices') {
-      logToHomey('→→→ DISCOVER VIEW SHOWN AGAIN - will reload devices');
-      // Directly fetch devices on every view show
-      fetchDevices();
+      
+      logToHomey(`Created ${deviceCount} device elements`);
     }
-  });
+
+    // Handle the add device button
+    discoveryAddButton.addEventListener('click', function() {
+      if (window.selectedDevice) {
+        logToHomey(`Add device button clicked for: ${window.selectedDevice.name}`);
+        
+        // Send the selected device to the driver
+        Homey.emit('selected_device', window.selectedDevice)
+          .then(() => {
+            logToHomey('Device selection confirmed, moving to add_device view');
+            // Navigate to the add device page
+            Homey.showView('add_device');
+          })
+          .catch(error => {
+            logToHomey(`Error selecting device: ${error.message || error}`);
+          });
+      }
+    });
+
+    // Function to fetch devices
+    window.fetchDevices = function() {
+      logToHomey('Requesting devices via list_devices handler');
+      
+      // Get fresh references to elements
+      const deviceListElement = window.deviceListElement || document.getElementById('device-list');
+      
+      // Show loading state
+      deviceListElement.innerHTML = `
+        <div id="no-devices" class="no-devices">
+          <div class="loading-spinner" style="width: 40px; height: 40px; margin: 10px auto;"></div>
+          <div>Searching for WLED devices...</div>
+        </div>`;
+        
+      // Use the SDK method to get devices
+      Homey.emit('list_devices')
+        .then(devices => {
+          logToHomey(`Received ${devices.length} devices from driver`);
+          window.updateDeviceList(devices);
+        })
+        .catch(error => {
+          logToHomey(`Error fetching devices: ${error.message || error}`);
+          
+          // Get fresh reference again as it might have changed
+          const deviceListElement = window.deviceListElement || document.getElementById('device-list');
+          
+          deviceListElement.innerHTML = `
+            <div id="no-devices" class="no-devices">
+              <div style="color: var(--error-color); font-weight: bold; margin-bottom: 10px;">Error loading devices</div>
+              <div>Please try again or add your device manually</div>
+            </div>`;
+        });
+    }
+
+    // Add click handler for refresh button
+    refreshButton.addEventListener('click', function() {
+      logToHomey('Manual refresh button clicked');
+      window.fetchDevices();
+    });
+
+    // Fetch devices on page load
+    window.fetchDevices();
+  }
+  else {
+    console.log('DEBUG: Redeclaration prevented - refreshing devices on revisit');
+    // If this is a subsequent load, just fetch the devices
+    // without redeclaring variables or functions
+    if (typeof window.fetchDevices === 'function') {
+      // Update element references since they may have been lost
+      const deviceListElement = document.getElementById('device-list');
+      const noDevicesElement = document.getElementById('no-devices');
+      const discoveryAddButton = document.getElementById('discovery-add-button');
+      const refreshButton = document.getElementById('refresh-button');
+      
+      // Store updated references in window for updateDeviceList
+      window.deviceListElement = deviceListElement;
+      window.discoveryAddButton = discoveryAddButton;
+      
+      // Show loading state
+      deviceListElement.innerHTML = `
+        <div id="no-devices" class="no-devices">
+          <div class="loading-spinner" style="width: 40px; height: 40px; margin: 10px auto;"></div>
+          <div>Searching for WLED devices again...</div>
+        </div>`;
+        
+      console.log('DEBUG: Re-attaching refresh button event listener');
+      
+      // Re-attach the refresh button event listener
+      refreshButton.addEventListener('click', function() {
+        console.log('DEBUG: Manual refresh clicked on revisit');
+        window.fetchDevices();
+      });
+      
+      // Update the updateDeviceList function to use the new references
+      window.updateDeviceList = function(devices) {
+        console.log(`DEBUG: Updating device list on revisit with ${devices.length} devices`);
+        
+        // Get fresh references to elements
+        const deviceListElement = window.deviceListElement || document.getElementById('device-list');
+        const discoveryAddButton = window.discoveryAddButton || document.getElementById('discovery-add-button');
+        
+        // Clear all existing content from device list
+        deviceListElement.innerHTML = '';
+        
+        // Hide the add button
+        discoveryAddButton.style.display = 'none';
+        
+        if (!devices || devices.length === 0) {
+          console.log('DEBUG: No devices found on revisit');
+          deviceListElement.innerHTML = `
+            <div id="no-devices" class="no-devices">
+              <div style="font-weight: bold; margin-bottom: 10px;">No WLED devices found</div>
+              <div>Try adding your device manually</div>
+            </div>`;
+          return;
+        }
+
+        // Create device list items
+        let deviceCount = 0;
+        
+        devices.forEach((device, index) => {
+          console.log(`DEBUG: Creating device element ${index+1}/${devices.length} on revisit`);
+          
+          const deviceItem = document.createElement('div');
+          deviceItem.className = 'device-item';
+          deviceItem.dataset.index = index;
+          deviceItem.dataset.deviceJson = JSON.stringify(device);
+          deviceItem.dataset.deviceId = device.data.id;
+          deviceItem.setAttribute('aria-label', `Select ${device.name}`);
+
+          // Add icon for WLED
+          const deviceIcon = document.createElement('div');
+          deviceIcon.className = 'device-icon';
+          deviceIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+            <rect x="4" y="12" width="24" height="8" rx="4" ry="4" fill="var(--text-color-secondary)"/>
+            <circle cx="9" cy="16" r="2" fill="var(--accent-color)"/>
+            <circle cx="16" cy="16" r="2" fill="var(--accent-color)"/>
+            <circle cx="23" cy="16" r="2" fill="var(--accent-color)"/>
+          </svg>`;
+
+          // Add check icon 
+          const checkIcon = document.createElement('div');
+          checkIcon.className = 'check-icon';
+          checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+            <path fill="white" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+          </svg>`;
+
+          const deviceName = document.createElement('div');
+          deviceName.className = 'device-name';
+          deviceName.textContent = device.name;
+
+          const deviceIp = document.createElement('div');
+          deviceIp.className = 'device-ip';
+          deviceIp.textContent = device.settings.address;
+
+          deviceItem.appendChild(deviceIcon);
+          deviceItem.appendChild(checkIcon);
+          deviceItem.appendChild(deviceName);
+          deviceItem.appendChild(deviceIp);
+          deviceListElement.appendChild(deviceItem);
+          deviceCount++;
+
+          // Add selection event
+          deviceItem.addEventListener('click', function () {
+            // Remove selection from all items
+            document.querySelectorAll('.device-item').forEach(item => {
+              item.classList.remove('selected');
+            });
+
+            // Add selection to this item
+            this.classList.add('selected');
+
+            // Store selected device
+            window.selectedDevice = device;
+            
+            // Show add button when a device is selected
+            discoveryAddButton.style.display = 'block';
+            
+            console.log(`DEBUG: Selected device on revisit: ${device.name}`);
+          });
+        });
+        
+        console.log(`DEBUG: Created ${deviceCount} device elements on revisit`);
+      };
+      
+      // Call fetch devices to refresh the list
+      window.fetchDevices();
+    } else {
+      console.log('DEBUG: ERROR - fetchDevices function not found on window object!');
+      // Fallback - try to recreate everything
+      const deviceListElement = document.getElementById('device-list');
+      deviceListElement.innerHTML = `
+        <div id="no-devices" class="no-devices">
+          <div style="color: var(--error-color); font-weight: bold; margin-bottom: 10px;">Error loading devices</div>
+          <div>Please go back and try again</div>
+        </div>`;
+    }
+  }
 </script>
