@@ -16,11 +16,6 @@
   <div id="button-container" class="button-container">
     <button id="discovery-add-button" class="primary-button" style="display: none;">Add Selected Device</button>
   </div>
-  
-  <!-- Refresh button -->
-  <div class="button-container">
-    <button id="refresh-button" class="secondary-button">Refresh Device List</button>
-  </div>
 </div>
 
 <script>
@@ -44,13 +39,11 @@
     const deviceListElement = document.getElementById('device-list');
     const noDevicesElement = document.getElementById('no-devices');
     const discoveryAddButton = document.getElementById('discovery-add-button');
-    const refreshButton = document.getElementById('refresh-button');
     
     // Store globally for use on subsequent loads
     window.deviceListElement = deviceListElement;
     window.noDevicesElement = noDevicesElement;
     window.discoveryAddButton = discoveryAddButton;
-    window.refreshButton = refreshButton;
     
     // Hide the Homey Next button (in addition to CSS)
     try {
@@ -187,12 +180,6 @@
         });
     }
 
-    // Add click handler for refresh button
-    refreshButton.addEventListener('click', function() {
-      // Only minimal logging for user actions
-      window.fetchDevices();
-    });
-
     // Handle the add device button
     discoveryAddButton.addEventListener('click', function() {
       if (window.selectedDevice) {
@@ -221,7 +208,6 @@
       const deviceListElement = document.getElementById('device-list');
       const noDevicesElement = document.getElementById('no-devices');
       const discoveryAddButton = document.getElementById('discovery-add-button');
-      const refreshButton = document.getElementById('refresh-button');
       
       // Store updated references in window for updateDeviceList
       window.deviceListElement = deviceListElement;
@@ -233,11 +219,6 @@
           <div class="loading-spinner" style="width: 40px; height: 40px; margin: 10px auto;"></div>
           <div>Searching for WLED devices...</div>
         </div>`;
-      
-      // Re-attach the refresh button event listener
-      refreshButton.addEventListener('click', function() {
-        window.fetchDevices();
-      });
       
       // Update the updateDeviceList function to use the new references
       window.updateDeviceList = function(devices) {

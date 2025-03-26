@@ -1,19 +1,20 @@
 <!-- Add device page for WLED devices -->
 <link rel="stylesheet" href="./wled-pair-styles.css">
 
-<div class="container">
+<div class="container" style="width: 100%; max-width: 100%; text-align: center;">
   <div class="title">Adding WLED Device</div>
-  
-  <div id="status-card" class="status-card loading">
+
+  <div id="status-card" class="status-card loading" style="margin: 0 auto;">
     <div id="loading-spinner" class="loading-spinner"></div>
     <div id="success-icon" class="status-icon success-icon" style="display: none;">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
       </svg>
     </div>
     <div id="error-icon" class="status-icon error-icon" style="display: none;">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.59-13L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z"/>
+        <path
+          d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.59-13L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z" />
       </svg>
     </div>
     <div id="status-title" class="status-title">Adding device...</div>
@@ -48,7 +49,7 @@
           showError('No device selected', 'Please go back and select a device');
           return;
         }
-        
+
         createDevice(deviceData);
       })
       .catch(error => {
@@ -60,21 +61,21 @@
   // Function to create the device
   function createDevice(deviceData) {
     logToHomey(`Adding device: ${deviceData.name} (${deviceData.settings.address})`);
-    
+
     // Show loading state with device name
     statusMessage.textContent = `Connecting to ${deviceData.name}...`;
-    
+
     // Add the device to Homey
     Homey.createDevice(deviceData)
       .then(() => {
         showSuccess('Device Added!', `${deviceData.name} has been added to Homey`);
-        
+
         // Complete the pairing immediately
         Homey.done();
       })
       .catch(error => {
         logToHomey(`Error adding device: ${error.message || error}`);
-        
+
         if (error.message && error.message.includes('already added')) {
           showError('Device Already Added', 'This device has already been added to Homey');
         } else {
@@ -89,7 +90,7 @@
     loadingSpinner.style.display = 'none';
     successIcon.style.display = 'none';
     errorIcon.style.display = 'none';
-    
+
     // Set the appropriate state
     if (state === 'loading') {
       loadingSpinner.style.display = 'block';
@@ -114,12 +115,12 @@
   function showSuccess(title, message) {
     statusTitle.textContent = title;
     statusMessage.textContent = message;
-    
+
     // Reset all states
     loadingSpinner.style.display = 'none';
     errorIcon.style.display = 'none';
     successIcon.style.display = 'block';
-    
+
     statusCard.className = 'status-card success';
   }
-</script> 
+</script>
