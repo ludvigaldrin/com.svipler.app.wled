@@ -258,18 +258,21 @@ class WLEDDevice extends Homey.Device {
       if (!effectOptions || !effectOptions.values || effectOptions.values.length === 0) {
         await this.fetchEffectsAndPalettes();
         const updatedOptions = await this.getCapabilityOptions('wled_effect');
-        return updatedOptions.values;
+        return this.formatOptionsForFlowCard(updatedOptions.values);
       }
+      
+      // Convert capability options to flow card format
+      const flowCardOptions = this.formatOptionsForFlowCard(effectOptions.values);
       
       // Filter by query if provided
       if (query && query.length > 0) {
         const lcQuery = query.toLowerCase();
-        return effectOptions.values.filter(option => 
+        return flowCardOptions.filter(option => 
           option.name.toLowerCase().includes(lcQuery)
         );
       }
       
-      return effectOptions.values;
+      return flowCardOptions;
     } catch (error) {
       this.error('Error getting effects list:', error);
       
@@ -289,18 +292,21 @@ class WLEDDevice extends Homey.Device {
       if (!paletteOptions || !paletteOptions.values || paletteOptions.values.length === 0) {
         await this.fetchEffectsAndPalettes();
         const updatedOptions = await this.getCapabilityOptions('wled_palette');
-        return updatedOptions.values;
+        return this.formatOptionsForFlowCard(updatedOptions.values);
       }
+      
+      // Convert capability options to flow card format
+      const flowCardOptions = this.formatOptionsForFlowCard(paletteOptions.values);
       
       // Filter by query if provided
       if (query && query.length > 0) {
         const lcQuery = query.toLowerCase();
-        return paletteOptions.values.filter(option => 
+        return flowCardOptions.filter(option => 
           option.name.toLowerCase().includes(lcQuery)
         );
       }
       
-      return paletteOptions.values;
+      return flowCardOptions;
     } catch (error) {
       this.error('Error getting palettes list:', error);
       
@@ -310,6 +316,37 @@ class WLEDDevice extends Homey.Device {
         name: name
       }));
     }
+  }
+  
+  // Helper method to convert capability option format to flow card format
+  formatOptionsForFlowCard(options) {
+    return options.map(option => {
+      // Handle options with title object
+      if (option.title && typeof option.title === 'object') {
+        return {
+          id: option.id,
+          name: option.title.en || `Option ${option.id}`
+        };
+      }
+      // Handle options with string title
+      else if (option.title && typeof option.title === 'string') {
+        return {
+          id: option.id,
+          name: option.title
+        };
+      }
+      // Handle options with name property
+      else if (option.name) {
+        return option;
+      }
+      // Fallback
+      else {
+        return {
+          id: option.id,
+          name: `Option ${option.id}`
+        };
+      }
+    });
   }
   
   // Core method to fetch and update device state
