@@ -10,10 +10,8 @@ Control your WLED-powered LED strips directly from Homey with this app. Adjust c
 - **Color Control**: Full RGB color control with hue and saturation adjustments
 - **Effects**: Choose from 100+ built-in WLED effects
 - **Color Palettes**: Apply beautiful color palettes to your effects
-- **Playlists**: Create sequences of effects with custom timings
-- **Individual LEDs**: Control specific LED segments for precise lighting
-- **Auto Discovery**: Automatically finds WLED devices on your network
-- **Manual Setup**: Manually add WLED devices by IP address
+- **Reliable Discovery**: Automatically finds WLED devices on your network with improved stability
+- **Manual Setup**: Manually add WLED devices by IP address when needed
 
 ## Requirements
 
@@ -28,6 +26,27 @@ Control your WLED-powered LED strips directly from Homey with this app. Adjust c
 3. Choose between automatic discovery or manual IP entry
 4. Follow the on-screen instructions to complete the pairing
 
+## Pairing Process
+
+### Automatic Discovery
+
+The app will automatically scan your network for WLED devices:
+
+1. Navigate to the WLED app in Homey's add device flow
+2. Select "Discover WLED Devices" 
+3. Select your device from the discovered list
+4. Tap "Add Selected Device" to complete the pairing
+
+### Manual Entry
+
+If your WLED device isn't automatically discovered:
+
+1. Navigate to the WLED app in Homey's add device flow
+2. Select "Manual Entry"
+3. Enter the IP address of your WLED device
+4. Tap "Test Connection" to verify
+5. Tap "Add Device" to complete the pairing
+
 ## Usage
 
 ### Basic Control
@@ -41,11 +60,6 @@ Choose from the built-in WLED effects to create dynamic lighting scenes. Each ef
 ### Palettes
 
 Apply color palettes to effects to change their appearance without changing the motion pattern.
-
-### Advanced Features
-
-- **Playlists**: Create sequences of presets with custom durations
-- **Individual LED Control**: Control specific sections of your LED strip for more precise setups
 
 ## Flow Support
 
@@ -70,15 +84,13 @@ This app adds several flow cards to Homey:
 - Set color
 - Set effect
 - Set color palette
-- Start playlist
-- Control individual LEDs
 
 ## Troubleshooting
 
 - **Device Not Discovered**: Make sure your WLED device is on the same network as your Homey
 - **Connection Issues**: Check that the IP address is correct and that your WLED device is online
 - **Effect Not Working**: Some effects may not be available depending on your WLED version
-- **Manual IP Required**: If automatic discovery doesn't work, try adding your device manually with its IP address
+- **Discovery Problems**: If discovery doesn't work consistently, try the manual IP entry method
 
 ## Support
 
@@ -100,5 +112,5 @@ This Homey app is licensed under the MIT License - see the LICENSE file for deta
 - Initial release
 - Basic control (on/off, brightness, color)
 - Effects and palettes support
-- Automatic discovery and manual IP configuration
+- Improved automatic discovery and manual IP configuration
 - Flow cards for automation
