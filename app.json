@@ -13,9 +13,7 @@
   "description": {
     "en": "Control your WLED devices with Homey"
   },
-  "category": [
-    "lights"
-  ],
+  "category": "lights",
   "permissions": [
     "homey:manager:api"
   ],
@@ -130,17 +128,6 @@
         "small": "/drivers/wled/assets/images/small.png",
         "large": "/drivers/wled/assets/images/large.png",
         "xlarge": "/drivers/wled/assets/images/xlarge.png"
-      },
-      "searchTerms": {
-        "en": [
-          "wled",
-          "led",
-          "light",
-          "strip",
-          "rgb",
-          "lighting",
-          "addressable"
-        ]
       },
       "pair": [
         {

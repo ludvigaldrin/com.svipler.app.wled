@@ -24,9 +24,6 @@
     "large": "/drivers/wled/assets/images/large.png",
     "xlarge": "/drivers/wled/assets/images/xlarge.png"
   },
-  "searchTerms": {
-    "en": ["wled", "led", "light", "strip", "rgb", "lighting", "addressable"]
-  },
   "pair": [
     {
       "id": "start",
