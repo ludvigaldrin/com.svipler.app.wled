@@ -48,9 +48,6 @@
       .catch(err => console.error('Error logging to Homey:', err));
   }
 
-  // Debug logging
-  logToHomey('MANUAL ENTRY PAGE LOADED');
-
   // Get form elements
   const manualForm = document.getElementById('manual-form');
   const deviceAddressInput = document.getElementById('deviceAddress');
@@ -133,17 +130,16 @@
     addDeviceBtn.disabled = true;
     addDeviceBtn.textContent = 'Adding...';
     
-    logToHomey(`Adding discovered device: ${JSON.stringify(discoveredDeviceData)}`);
+    logToHomey(`Adding device: ${discoveredDeviceData.name} (${discoveredDeviceData.settings.address})`);
     
     // Send the device to the driver
     Homey.emit('selected_device', discoveredDeviceData)
       .then(() => {
-        logToHomey('Device selection sent to driver');
         // Navigate to add_device view
         Homey.showView('add_device');
       })
       .catch(error => {
-        logToHomey(`Error in device selection: ${error.message || error}`);
+        logToHomey(`Error adding device: ${error.message || error}`);
         alert('Failed to add device: ' + (error.message || ''));
         // Re-enable button
         addDeviceBtn.disabled = false;

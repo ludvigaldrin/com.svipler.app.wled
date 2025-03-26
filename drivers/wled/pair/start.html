@@ -40,17 +40,12 @@
       .catch(err => console.error('Error logging to Homey:', err));
   }
 
-  // Debug logging
-  logToHomey('START PAGE LOADED');
-
   // Event listeners for buttons
   document.getElementById('discover-button').addEventListener('click', function() {
-    logToHomey('Discover button clicked, navigating to discover_devices');
     Homey.showView('discover_devices');
   });
 
   document.getElementById('manual-button').addEventListener('click', function() {
-    logToHomey('Manual button clicked, navigating to manual_entry');
     Homey.showView('manual_entry');
   });
 </script> 

@@ -21,17 +21,14 @@ class WLEDDriver extends Homey.Driver {
       // Process existing discovery results
       const currentResults = this.discoveryStrategy.getDiscoveryResults();
       const resultIds = Object.keys(currentResults);
-      this.log('Initial discovery results:', resultIds.length);
+      this.log(`Initial discovery found ${resultIds.length} devices`);
       
       if (resultIds.length > 0) {
-        // Log detailed information about each discovery result
+        // Process each discovery result
         for (const id of resultIds) {
           const result = currentResults[id];
-          this.log(`Discovery result: ID=${id}, Address=${result.address}, Name=${result.name || 'unnamed'}`);
           this.onDiscoveryResult(result);
         }
-      } else {
-        this.log('No initial discovery results found');
       }
     } catch (error) {
       this.error('Discovery strategy error:', error);
@@ -46,10 +43,8 @@ class WLEDDriver extends Homey.Driver {
   onDiscoveryResult(discoveryResult) {
     // Store results for pairing
     const id = discoveryResult.id;
-    this.log(`Discovery result received: ID=${id}, Address=${discoveryResult.address || 'unknown'}`);
     
     if (!discoveryResult.address) {
-      this.log('Skipping discovery result without address');
       return;
     }
     
@@ -58,13 +53,8 @@ class WLEDDriver extends Homey.Driver {
     this.discoveryResults[id] = discoveryResult;
     
     if (isNew) {
-      this.log(`New WLED device discovered: ${discoveryResult.address}`);
-    } else {
-      this.log(`Updated discovery for WLED device: ${discoveryResult.address}`);
+      this.log(`New WLED device discovered: ${discoveryResult.address} ${discoveryResult.name}`);
     }
-    
-    // Log the current count of discovered devices
-    this.log(`Total discovered devices: ${Object.keys(this.discoveryResults).length}`);
   }
 
   // Called when a discovery result is added
@@ -97,7 +87,6 @@ class WLEDDriver extends Homey.Driver {
       const info = response.data;
       
       // Extract useful information from the API response
-      
       // Use the custom name if it exists, or generate a friendly name based on host/mac
       let deviceName = 'WLED';
       if (info.name && info.name !== 'WLED') {
@@ -154,7 +143,6 @@ class WLEDDriver extends Homey.Driver {
 
     // View navigation handler
     session.setHandler('showView', async (view) => {
-      this.log(`Pairing: navigated to view ${view} from ${activeView}`);
       
       // Store previous view before updating
       previousView = activeView;
@@ -162,25 +150,21 @@ class WLEDDriver extends Homey.Driver {
       
       // Reset device state on certain view changes
       if (view === 'start') {
-        this.log('Resetting pairing device state');
         pairingDevice = null;
       }
       
       // Special handling for discover_devices view - only reload once per session
       if (view === 'discover_devices' && previousView !== '' && previousView !== 'discover_devices' && !manuallyReloadedViews[view]) {
-        this.log('Coming back to discover_devices view from a different view');
         manuallyReloadedViews[view] = true;
         
         // Just refresh discovery results and rely on HTML page's onload
         try {
           // Clear existing discovery results to ensure fresh data
           this.discoveryResults = {};
-          this.log('Cleared existing discovery results');
           
           // Get fresh discovery results
           const currentResults = this.discoveryStrategy.getDiscoveryResults();
           const resultIds = Object.keys(currentResults);
-          this.log(`Fresh discover_devices refresh: Found ${resultIds.length} devices`);
           
           // Process each discovery result again to ensure fresh data
           for (const id of resultIds) {
@@ -198,14 +182,12 @@ class WLEDDriver extends Homey.Driver {
         
         // Refresh discovery results with throttling (max once per second)
         if (now - lastDiscoveryRefresh > 1000) {
-          this.log('Refreshing discovery results');
           lastDiscoveryRefresh = now;
           
           try {
             // Get fresh discovery results
             const currentResults = this.discoveryStrategy.getDiscoveryResults();
             const resultIds = Object.keys(currentResults);
-            this.log(`Discovery refreshed: Found ${resultIds.length} devices`);
             
             // Process each discovery result
             for (const id of resultIds) {
@@ -216,30 +198,22 @@ class WLEDDriver extends Homey.Driver {
           } catch (error) {
             this.error('Error refreshing discovery results:', error);
           }
-        } else {
-          this.log('Skipping discovery refresh - throttled');
         }
-      }
-      
-      // Entering the manual entry page
-      if (view === 'manual_entry') {
-        this.log('Entering manual entry page');
       }
     });
 
     // Handler for complete discovery strategy refresh
     session.setHandler('refresh_discovery_strategy', async () => {
-      this.log('Received request to refresh discovery strategy');
+      this.log('Refreshing discovery results');
       
       try {
         // Clear existing discovery results first
         this.discoveryResults = {};
-        this.log('Cleared existing discovery results');
         
         // Get fresh discovery results
         const currentResults = this.discoveryStrategy.getDiscoveryResults();
         const resultIds = Object.keys(currentResults);
-        this.log(`Fresh discovery strategy refresh: Found ${resultIds.length} devices`);
+        this.log(`Found ${resultIds.length} devices in discovery refresh`);
         
         // Process each discovery result
         for (const id of resultIds) {
@@ -250,7 +224,7 @@ class WLEDDriver extends Homey.Driver {
         // Return success
         return true;
       } catch (error) {
-        this.error('Error during full discovery strategy refresh:', error);
+        this.error('Error during discovery refresh:', error);
         return false;
       }
     });
@@ -300,7 +274,6 @@ class WLEDDriver extends Homey.Driver {
 
     // Store the selected device for pairing
     session.setHandler('selected_device', async (device) => {
-      this.log('Device selected for pairing:', device.name, device.data.id);
       pairingDevice = device;
       return true;
     });
@@ -308,7 +281,6 @@ class WLEDDriver extends Homey.Driver {
     // Get the pairing device on the add_device page
     session.setHandler('get_pairing_device', async () => {
       if (pairingDevice) {
-        this.log('Returning device for pairing:', pairingDevice.name);
         return pairingDevice;
       }
       
@@ -318,18 +290,14 @@ class WLEDDriver extends Homey.Driver {
 
     // Handler for discover_devices view to list discovered devices 
     session.setHandler('list_devices', async () => {
-      // Always force a clean refresh of discovery results when list_devices is called
-      this.log('list_devices called - forcing clean refresh of discovery results');
       
       try {
         // Clear existing discovery results to ensure fresh data
         this.discoveryResults = {};
-        this.log('Cleared existing discovery results');
         
         // Get fresh discovery results
         const currentResults = this.discoveryStrategy.getDiscoveryResults();
         const resultIds = Object.keys(currentResults);
-        this.log(`Refreshed discovery results: Found ${resultIds.length} devices`);
         
         // Process each discovery result again to ensure fresh data
         for (const id of resultIds) {
@@ -342,14 +310,9 @@ class WLEDDriver extends Homey.Driver {
       
       // Get current discovered devices
       const discoveryResults = Object.values(this.discoveryResults || {});
-      this.log(`Found ${discoveryResults.length} discovered devices for pairing`);
       
       if (discoveryResults.length === 0) {
-        this.log('No discovery results found');
-      } else {
-        discoveryResults.forEach((result, index) => {
-          this.log(`Discovery result ${index+1}/${discoveryResults.length}: ID=${result.id}, Address=${result.address || 'unknown'}`);
-        });
+        this.log('No devices found in discovery');
       }
       
       const devices = [];
@@ -358,9 +321,7 @@ class WLEDDriver extends Homey.Driver {
       for (const discoveryResult of discoveryResults) {
         if (discoveryResult && discoveryResult.address) {
           try {
-            this.log(`Processing discovery result for ${discoveryResult.address}`);
             const deviceInfo = await this.getDeviceInfo(discoveryResult.address);
-            this.log(`Found device: ${deviceInfo.name} at ${deviceInfo.settings.address}`);
             devices.push(deviceInfo);
           } catch (error) {
             // Skip devices with errors
@@ -370,11 +331,6 @@ class WLEDDriver extends Homey.Driver {
       }
       
       this.log(`Returning ${devices.length} devices for pairing`);
-      if (devices.length > 0) {
-        devices.forEach((device, index) => {
-          this.log(`Device ${index+1}/${devices.length}: ${device.name} (${device.data.id})`);
-        });
-      }
       
       return devices;
     });

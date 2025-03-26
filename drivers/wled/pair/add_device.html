@@ -29,9 +29,6 @@
       .catch(err => console.error('Error logging to Homey:', err));
   }
 
-  // Debug logging
-  logToHomey('ADD DEVICE PAGE LOADED');
-
   // Get elements
   const statusCard = document.getElementById('status-card');
   const loadingSpinner = document.getElementById('loading-spinner');
@@ -40,16 +37,11 @@
   const statusTitle = document.getElementById('status-title');
   const statusMessage = document.getElementById('status-message');
 
-  // Initial state is already set with HTML classes and styles
-  // No need to call showState here
-
   // Request the pairing device from the driver
   getPairingDevice();
 
   // Function to get the device to be paired
   function getPairingDevice() {
-    logToHomey('Requesting pairing device from driver');
-    
     Homey.emit('get_pairing_device')
       .then(deviceData => {
         if (!deviceData) {
@@ -57,7 +49,6 @@
           return;
         }
         
-        logToHomey(`Got pairing device: ${JSON.stringify(deviceData)}`);
         createDevice(deviceData);
       })
       .catch(error => {
@@ -68,7 +59,7 @@
 
   // Function to create the device
   function createDevice(deviceData) {
-    logToHomey(`Creating device: ${deviceData.name} (${deviceData.settings.address})`);
+    logToHomey(`Adding device: ${deviceData.name} (${deviceData.settings.address})`);
     
     // Show loading state with device name
     statusMessage.textContent = `Connecting to ${deviceData.name}...`;
@@ -76,15 +67,13 @@
     // Add the device to Homey
     Homey.createDevice(deviceData)
       .then(() => {
-        logToHomey('Device added successfully');
         showSuccess('Device Added!', `${deviceData.name} has been added to Homey`);
         
         // Complete the pairing immediately
-        logToHomey('Completing pairing with success');
         Homey.done();
       })
       .catch(error => {
-        logToHomey(`Error creating device: ${error.message || error}`);
+        logToHomey(`Error adding device: ${error.message || error}`);
         
         if (error.message && error.message.includes('already added')) {
           showError('Device Already Added', 'This device has already been added to Homey');
