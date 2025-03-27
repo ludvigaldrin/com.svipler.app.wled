@@ -38,6 +38,18 @@ class WLEDApp extends Homey.App {
         const { device } = args;
         return device.getPalettesList(query);
       });
+
+    // Action flow card for setting presets
+    this.homey.flow.getActionCard('set_preset')
+      .registerRunListener(async (args, state) => {
+        const { device, preset } = args;
+        return device.setPreset(preset.id);
+      })
+      .getArgument('preset')
+      .registerAutocompleteListener(async (query, args) => {
+        const { device } = args;
+        return device.getPresetsList(query);
+      });
   }
 }
 

@@ -10,7 +10,8 @@
     "light_hue",
     "light_saturation",
     "wled_effect", 
-    "wled_palette"
+    "wled_palette",
+    "wled_preset"
   ],
   "platforms": [
     "local"

@@ -13,9 +13,7 @@
     "en": "Control your WLED devices with Homey"
   },
   "category": "lights",
-  "permissions": [
-    "homey:manager:api"
-  ],
+  "permissions": [],
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",

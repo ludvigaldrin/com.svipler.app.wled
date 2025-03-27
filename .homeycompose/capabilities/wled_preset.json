@@ -1,0 +1,50 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Preset"
+  },
+  "desc": {
+    "en": "Select a WLED preset"
+  },
+  "getable": true,
+  "setable": true,
+  "uiComponent": "picker",
+  "values": [
+    {
+      "id": "0",
+      "title": {
+        "en": "No Preset"
+      }
+    },
+    {
+      "id": "1",
+      "title": {
+        "en": "Preset 1"
+      }
+    },
+    {
+      "id": "2",
+      "title": {
+        "en": "Preset 2"
+      }
+    },
+    {
+      "id": "3",
+      "title": {
+        "en": "Preset 3"
+      }
+    },
+    {
+      "id": "4",
+      "title": {
+        "en": "Preset 4"
+      }
+    },
+    {
+      "id": "5",
+      "title": {
+        "en": "Preset 5"
+      }
+    }
+  ]
+} 

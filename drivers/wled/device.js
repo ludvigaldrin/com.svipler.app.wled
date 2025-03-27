@@ -19,10 +19,11 @@ class WLEDDevice extends Homey.Device {
         throw new Error('No IP address set for WLED device');
       }
       
-      // Set default values for effect/palette ranges
+      // Set default values for effect/palette/preset ranges
       this.maxEffectId = settings.fxcount ? parseInt(settings.fxcount) - 1 : 255;
       this.maxPaletteId = settings.palcount ? parseInt(settings.palcount) - 1 : 255;
-      this.log(`Initial max effect ID: ${this.maxEffectId}, max palette ID: ${this.maxPaletteId}`);
+      this.maxPresetId = settings.presetcount ? parseInt(settings.presetcount) - 1 : 255;
+      this.log(`Initial max effect ID: ${this.maxEffectId}, max palette ID: ${this.maxPaletteId}, max preset ID: ${this.maxPresetId}`);
       
       // Initialize capability values with defaults
       if (this.hasCapability('wled_effect') && !this.getCapabilityValue('wled_effect')) {
@@ -31,6 +32,10 @@ class WLEDDevice extends Homey.Device {
       
       if (this.hasCapability('wled_palette') && !this.getCapabilityValue('wled_palette')) {
         await this.setCapabilityValue('wled_palette', "0").catch(this.error);
+      }
+
+      if (this.hasCapability('wled_preset') && !this.getCapabilityValue('wled_preset')) {
+        await this.setCapabilityValue('wled_preset', "0").catch(this.error);
       }
       
       // Set up polling intervals
@@ -52,7 +57,7 @@ class WLEDDevice extends Homey.Device {
       // Register all capability listeners
       this.registerCapabilityListeners();
       
-      // Initialize effects and palettes for selection after a short delay
+      // Initialize effects, palettes and presets for selection after a short delay
       setTimeout(() => {
         this.fetchEffectsAndPalettes().catch(error => {
           this.error('Error initializing effects and palettes:', error);
@@ -171,7 +176,7 @@ class WLEDDevice extends Homey.Device {
         
         if (!ipAddress) {
           this.error('No IP address configured for effect setting');
-          return false; // Don't throw, just return false
+          return false;
         }
         
         // Create fresh client for this request
@@ -186,10 +191,10 @@ class WLEDDevice extends Homey.Device {
         // Check if effect ID is valid
         if (isNaN(effectId) || effectId < 0 || effectId > this.maxEffectId) {
           this.error(`Invalid effect ID: ${value}`);
-          return false; // Don't throw, just return false
+          return false;
         }
         
-        // Set effect for first segment
+        // Set effect for first segment - use effectId directly as WLED uses 0-based indexing
         await apiClient.post('/json/state', {
           seg: [
             {
@@ -201,8 +206,7 @@ class WLEDDevice extends Homey.Device {
         return true;
       } catch (error) {
         this.error(`Error setting effect: ${error.message}`);
-        // Don't throw the error, just log it and return false
-        return false; 
+        return false;
       }
     });
     
@@ -214,7 +218,7 @@ class WLEDDevice extends Homey.Device {
         
         if (!ipAddress) {
           this.error('No IP address configured for palette setting');
-          return false; // Don't throw, just return false
+          return false;
         }
         
         // Create fresh client for this request
@@ -229,10 +233,10 @@ class WLEDDevice extends Homey.Device {
         // Check if palette ID is valid
         if (isNaN(paletteId) || paletteId < 0 || paletteId > this.maxPaletteId) {
           this.error(`Invalid palette ID: ${value}`);
-          return false; // Don't throw, just return false
+          return false;
         }
         
-        // Set palette for first segment
+        // Set palette for first segment - use paletteId directly as WLED uses 0-based indexing
         await apiClient.post('/json/state', {
           seg: [
             {
@@ -244,7 +248,37 @@ class WLEDDevice extends Homey.Device {
         return true;
       } catch (error) {
         this.error(`Error setting palette: ${error.message}`);
-        // Don't throw the error, just log it and return false
+        return false;
+      }
+    });
+
+    // Preset capability
+    this.registerCapabilityListener('wled_preset', async (value) => {
+      try {
+        const settings = this.getSettings();
+        const ipAddress = settings.ip || settings.address;
+        
+        if (!ipAddress) {
+          this.error('No IP address configured for preset setting');
+          return false;
+        }
+        
+        // Create fresh client for this request
+        const apiClient = axios.create({
+          baseURL: `http://${ipAddress}`,
+          timeout: 5000,
+        });
+        
+        // Convert string ID to number
+        const presetId = parseInt(value, 10);
+        
+        // Send the preset ID directly to WLED
+        // WLED uses -1 for no preset and positive numbers for actual presets
+        await apiClient.post('/json/state', { ps: presetId });
+        
+        return true;
+      } catch (error) {
+        this.error(`Error setting preset: ${error.message}`);
         return false;
       }
     });
@@ -312,6 +346,40 @@ class WLEDDevice extends Homey.Device {
       
       // Create options from default palettes
       return this._getDefaultPalettes().map((name, id) => ({
+        id: String(id),
+        name: name
+      }));
+    }
+  }
+  
+  async getPresetsList(query = '') {
+    try {
+      // Get presets from capability options
+      const presetOptions = await this.getCapabilityOptions('wled_preset');
+      
+      if (!presetOptions || !presetOptions.values || presetOptions.values.length === 0) {
+        await this.fetchEffectsAndPalettes();
+        const updatedOptions = await this.getCapabilityOptions('wled_preset');
+        return this.formatOptionsForFlowCard(updatedOptions.values);
+      }
+      
+      // Convert capability options to flow card format
+      const flowCardOptions = this.formatOptionsForFlowCard(presetOptions.values);
+      
+      // Filter by query if provided
+      if (query && query.length > 0) {
+        const lcQuery = query.toLowerCase();
+        return flowCardOptions.filter(option => 
+          option.name.toLowerCase().includes(lcQuery)
+        );
+      }
+      
+      return flowCardOptions;
+    } catch (error) {
+      this.error('Error getting presets list:', error);
+      
+      // Create options from default presets
+      return this._getDefaultPresets().map((name, id) => ({
         id: String(id),
         name: name
       }));
@@ -401,36 +469,34 @@ class WLEDDevice extends Homey.Device {
           await this.setCapabilityValue('light_saturation', hsv.s).catch(this.error);
         }
         
-        // Effect
+        // Effect - use WLED's effect ID directly (0-based)
         if (segment.fx !== undefined) {
-          const effectId = String(segment.fx);
-          
           if (segment.fx < 0 || segment.fx > this.maxEffectId) {
-            this.log(`Effect ID ${effectId} out of range (max: ${this.maxEffectId}), setting to 0`);
-            await this.setCapabilityValue('wled_effect', "0").catch(this.error);
+            this.log(`Effect ID ${segment.fx} out of range (max: ${this.maxEffectId})`);
           } else {
-            await this.setCapabilityValue('wled_effect', effectId).catch(this.error);
+            await this.setCapabilityValue('wled_effect', String(segment.fx)).catch(this.error);
           }
         }
         
-        // Palette
+        // Palette - use WLED's palette ID directly (0-based)
         if (segment.pal !== undefined) {
-          const paletteId = String(segment.pal);
-          
           if (segment.pal < 0 || segment.pal > this.maxPaletteId) {
-            this.log(`Palette ID ${paletteId} out of range (max: ${this.maxPaletteId}), setting to 0`);
-            await this.setCapabilityValue('wled_palette', "0").catch(this.error);
+            this.log(`Palette ID ${segment.pal} out of range (max: ${this.maxPaletteId})`);
           } else {
-            await this.setCapabilityValue('wled_palette', paletteId).catch(this.error);
+            await this.setCapabilityValue('wled_palette', String(segment.pal)).catch(this.error);
           }
         }
+      }
+      
+      // Preset - use WLED's preset ID directly (-1 for none, positive for presets)
+      if (state.ps !== undefined) {
+        await this.setCapabilityValue('wled_preset', String(state.ps)).catch(this.error);
       }
       
       // Update last state time
       this.lastStateUpdate = Date.now();
       
       // If we haven't fetched effects and palettes yet, do it now
-      // Only attempt to fetch if not already fetching and not yet fetched
       if (!this.effectsAndPalettesFetched && !this.fetchingEffectsAndPalettes) {
         this.fetchEffectsAndPalettes().catch(error => {
           this.error('Failed to fetch effects and palettes:', error.message);
@@ -468,6 +534,7 @@ class WLEDDevice extends Homey.Device {
         // Don't throw, just handle gracefully
         await this._updateEffectsCapability(this._getDefaultEffects());
         await this._updatePalettesCapability(this._getDefaultPalettes());
+        await this._updatePresetsCapability([]);
         return false;
       }
       
@@ -477,7 +544,7 @@ class WLEDDevice extends Homey.Device {
         timeout: 5000,
       });
       
-      // Try to get effects and palettes from main API endpoint
+      // First get effects and palettes
       const response = await apiClient.get('/json');
       const data = response.data;
       
@@ -501,6 +568,39 @@ class WLEDDevice extends Homey.Device {
         await this._updatePalettesCapability(data.palettes);
       } else {
         await this._updatePalettesCapability(this._getDefaultPalettes());
+      }
+      
+      // Now fetch presets separately
+      try {
+        const presetsResponse = await apiClient.get('/presets.json');
+        const presets = presetsResponse.data;
+        
+        if (presets) {
+          // Filter out non-preset entries and convert to array format
+          const presetArray = Object.entries(presets)
+            .filter(([id, preset]) => {
+              // Filter out metadata entries and ensure preset has required data
+              return preset && 
+                     preset.n && // Has a name
+                     !id.startsWith('_') && // Not a metadata entry
+                     parseInt(id) > 0; // Valid preset ID (greater than 0)
+            })
+            .map(([id, preset]) => ({
+              id: String(id),
+              name: preset.n
+            }));
+          
+          // Update the maximum preset ID based on actual presets
+          this.maxPresetId = Math.max(...presetArray.map(p => parseInt(p.id, 10)), 0);
+          
+          // Update device capability options
+          await this._updatePresetsCapability(presetArray);
+        } else {
+          await this._updatePresetsCapability([]);
+        }
+      } catch (presetError) {
+        this.error('Error fetching presets:', presetError);
+        await this._updatePresetsCapability([]);
       }
       
       // Update device settings with the new counts
@@ -536,11 +636,12 @@ class WLEDDevice extends Homey.Device {
       this.fetchingEffectsAndPalettes = false;
       return true;
     } catch (error) {
-      this.error(`Error fetching effects and palettes: ${error.message || error}`);
+      this.error(`Error fetching effects, palettes and presets: ${error.message}`);
       
       // Fall back to defaults if there's an error
       await this._updateEffectsCapability(this._getDefaultEffects());
       await this._updatePalettesCapability(this._getDefaultPalettes());
+      await this._updatePresetsCapability([]);
       
       this.fetchingEffectsAndPalettes = false;
       return false;
@@ -549,78 +650,112 @@ class WLEDDevice extends Homey.Device {
   
   async _updateEffectsCapability(effects) {
     try {
-      // Convert to format expected by capability options - note: uses 'title' not 'name'
+      // Convert to format expected by capability options
       const effectOptions = effects.map((name, id) => ({
-        id: String(id),
+        id: String(id),  // Use direct 0-based indexing to match WLED
+        name: name || `Effect ${id}`,
         title: {
           en: name || `Effect ${id}`
-        },
-        // Store the original name for sorting
-        originalName: name || `Effect ${id}`
+        }
       }));
       
       // Sort effects alphabetically by name
       effectOptions.sort((a, b) => {
-        // Compare names, case-insensitive
-        return a.originalName.toLowerCase().localeCompare(b.originalName.toLowerCase());
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
       });
-      
-      // Remove the temporary originalName property
-      const cleanEffectOptions = effectOptions.map(({id, title}) => ({id, title}));
       
       // Only log count during initial setup
       if (!this.effectsAndPalettesFetched) {
-        this.log(`Found ${cleanEffectOptions.length} effects`);
+        this.log(`Found ${effectOptions.length} effects`);
       }
       
       // Update the capability options
       await this.setCapabilityOptions('wled_effect', {
-        values: cleanEffectOptions
-      }).catch(err => this.error(`Failed to set effect options: ${err.message}`)); // Catch and log errors
+        values: effectOptions
+      }).catch(err => this.error(`Failed to set effect options: ${err.message}`));
       
       return true;
     } catch (error) {
       this.error('Error updating effects capability:', error);
-      // Return false but don't throw
       return false;
     }
   }
   
   async _updatePalettesCapability(palettes) {
     try {
-      // Convert to format expected by capability options - note: uses 'title' not 'name'
+      // Convert to format expected by capability options
       const paletteOptions = palettes.map((name, id) => ({
-        id: String(id),
+        id: String(id),  // Use direct 0-based indexing to match WLED
+        name: name || `Palette ${id}`,
         title: {
           en: name || `Palette ${id}`
-        },
-        // Store the original name for sorting
-        originalName: name || `Palette ${id}`
+        }
       }));
       
       // Sort palettes alphabetically by name
       paletteOptions.sort((a, b) => {
-        // Compare names, case-insensitive
-        return a.originalName.toLowerCase().localeCompare(b.originalName.toLowerCase());
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
       });
-      
-      // Remove the temporary originalName property
-      const cleanPaletteOptions = paletteOptions.map(({id, title}) => ({id, title}));
       
       // Only log count during initial setup
       if (!this.effectsAndPalettesFetched) {
-        this.log(`Found ${cleanPaletteOptions.length} palettes`);
+        this.log(`Found ${paletteOptions.length} palettes`);
       }
       
       // Update the capability options
       await this.setCapabilityOptions('wled_palette', {
-        values: cleanPaletteOptions
-      }).catch(err => this.error(`Failed to set palette options: ${err.message}`)); // Catch and log errors
+        values: paletteOptions
+      }).catch(err => this.error(`Failed to set palette options: ${err.message}`));
       
       return true;
     } catch (error) {
       this.error('Error updating palettes capability:', error);
-      // Return false but don't throw
+      return false;
+    }
+  }
+  
+  async _updatePresetsCapability(presets) {
+    try {
+      // Ensure we always have the "No Preset" option
+      const defaultPreset = {
+        id: "-1", // Changed to match WLED's -1 for no preset
+        name: "No Preset"
+      };
+
+      // Convert to format expected by capability options
+      const presetOptions = [defaultPreset, ...presets].map((preset) => ({
+        id: preset.id,
+        title: {
+          en: preset.name || `Preset ${preset.id}`
+        },
+        originalName: preset.name || `Preset ${preset.id}`
+      }));
+      
+      // Sort presets by ID numerically, keeping "No Preset" at the top
+      presetOptions.sort((a, b) => {
+        // Keep "No Preset" at the top
+        if (a.id === "-1") return -1;
+        if (b.id === "-1") return 1;
+        // Sort others by ID numerically
+        return parseInt(a.id) - parseInt(b.id);
+      });
+      
+      // Remove the temporary originalName property
+      const cleanPresetOptions = presetOptions.map(({id, title}) => ({id, title}));
+      
+      // Only log count during initial setup
+      if (!this.effectsAndPalettesFetched) {
+        this.log(`Found ${cleanPresetOptions.length - 1} presets`); // -1 to exclude "No Preset"
+      }
+      
+      // Update the capability options
+      await this.setCapabilityOptions('wled_preset', {
+        values: cleanPresetOptions
+      }).catch(err => this.error(`Failed to set preset options: ${err.message}`));
+      
+      return true;
+    } catch (error) {
+      this.error('Error updating presets capability:', error);
       return false;
     }
   }
@@ -628,37 +763,37 @@ class WLEDDevice extends Homey.Device {
   // Default effects to use if API doesn't provide them
   _getDefaultEffects() {
     return [
-      'Solid',
-      'Blink',
-      'Breathe',
-      'Wipe',
-      'Fade',
-      'Colorloop',
-      'Rainbow',
-      'Scan',
-      'Dual Scan',
-      'Fade Out',
-      'Chase',
-      'Chase Rainbow',
-      'Running'
+      'Solid', 'Blink', 'Breathe', 'Wipe', 'Wipe Random', 'Random Colors', 'Sweep', 'Dynamic', 'Colorloop', 'Rainbow',
+      'Scan', 'Dual Scan', 'Fade', 'Chase', 'Chase Rainbow', 'Running', 'Saw', 'Twinkle', 'Dissolve', 'Dissolve Rnd',
+      'Sparkle', 'Dark Sparkle', 'Sparkle+', 'Strobe', 'Strobe Rainbow', 'Mega Strobe', 'Blink Rainbow', 'Android', 'Chase', 'Chase Random',
+      'Chase Rainbow', 'Chase Flash', 'Chase Flash Rnd', 'Rainbow Runner', 'Colorful', 'Traffic Light', 'Sweep Random', 'Running 2', 'Red & Blue', 'Stream',
+      'Scanner', 'Lighthouse', 'Fireworks', 'Rain', 'Merry Christmas', 'Fire Flicker', 'Gradient', 'Loading', 'In Out', 'In In',
+      'Out Out', 'Out In', 'Circus', 'Halloween', 'Tri Chase', 'Tri Wipe', 'Tri Fade', 'Lightning', 'ICU', 'Multi Comet',
+      'Dual Scanner', 'Stream 2', 'Oscillate', 'Pride 2015', 'Juggle', 'Palette', 'Fire 2012', 'Colorwaves', 'BPM', 'Fill Noise', 'Noise 1',
+      'Noise 2', 'Noise 3', 'Noise 4', 'Colortwinkle', 'Lake', 'Meteor', 'Smooth Meteor', 'Railway', 'Ripple'
     ];
   }
   
   // Default palettes to use if API doesn't provide them
   _getDefaultPalettes() {
     return [
-      'Default',
-      'Random Colors',
-      'Primary Color',
-      'Based on Primary',
-      'Set Colors',
-      'Rainbow',
-      'Rainbow with Glitter',
-      'Cloud',
-      'Lava',
-      'Ocean',
-      'Forest',
-      'Party'
+      'Default', 'Random Cycle', 'Primary Color', 'Based on Primary', 'Set Colors', 'Based on Set', 'Party', 'Cloud', 'Lava', 'Ocean',
+      'Forest', 'Rainbow', 'Rainbow Bands', 'Sunset', 'Rivendell', 'Breeze', 'Red & Blue', 'Yellowout', 'Analogous', 'Splash',
+      'Pastel', 'Sunset 2', 'Beech', 'Vintage', 'Departure', 'Landscape', 'Beach', 'Sherbet', 'Hult', 'Hult 64',
+      'Drywet', 'Jul', 'Grintage', 'Rewhi', 'Tertiary', 'Fire', 'Icefire', 'Cyane', 'Light Pink', 'Autumn',
+      'Magenta', 'Magred', 'Yelmag', 'Yelblu', 'Orange & Teal', 'Tiamat', 'April Night'
+    ];
+  }
+  
+  // Default presets to use if API doesn't provide them
+  _getDefaultPresets() {
+    return [
+      'No Preset',
+      'Preset 1',
+      'Preset 2',
+      'Preset 3',
+      'Preset 4',
+      'Preset 5'
     ];
   }
   

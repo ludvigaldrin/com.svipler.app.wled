@@ -19,37 +19,37 @@
     {
       "id": "1",
       "title": {
-        "en": "Random Colors"
+        "en": "* Random Cycle"
       }
     },
     {
       "id": "2",
       "title": {
-        "en": "Primary Color"
+        "en": "* Color 1"
       }
     },
     {
       "id": "3",
       "title": {
-        "en": "Based on Primary"
+        "en": "* Colors 1&2"
       }
     },
     {
       "id": "4",
       "title": {
-        "en": "Set Colors"
+        "en": "* Color Gradient"
       }
     },
     {
       "id": "5",
       "title": {
-        "en": "Rainbow"
+        "en": "* Colors Only"
       }
     },
     {
       "id": "6",
       "title": {
-        "en": "Rainbow with Glitter"
+        "en": "Party"
       }
     },
     {
@@ -79,7 +79,361 @@
     {
       "id": "11",
       "title": {
-        "en": "Party"
+        "en": "Rainbow"
+      }
+    },
+    {
+      "id": "12",
+      "title": {
+        "en": "Rainbow Bands"
+      }
+    },
+    {
+      "id": "13",
+      "title": {
+        "en": "Sunset"
+      }
+    },
+    {
+      "id": "14",
+      "title": {
+        "en": "Rivendell"
+      }
+    },
+    {
+      "id": "15",
+      "title": {
+        "en": "Breeze"
+      }
+    },
+    {
+      "id": "16",
+      "title": {
+        "en": "Red & Blue"
+      }
+    },
+    {
+      "id": "17",
+      "title": {
+        "en": "Yellowout"
+      }
+    },
+    {
+      "id": "18",
+      "title": {
+        "en": "Analogous"
+      }
+    },
+    {
+      "id": "19",
+      "title": {
+        "en": "Splash"
+      }
+    },
+    {
+      "id": "20",
+      "title": {
+        "en": "Pastel"
+      }
+    },
+    {
+      "id": "21",
+      "title": {
+        "en": "Sunset 2"
+      }
+    },
+    {
+      "id": "22",
+      "title": {
+        "en": "Beach"
+      }
+    },
+    {
+      "id": "23",
+      "title": {
+        "en": "Vintage"
+      }
+    },
+    {
+      "id": "24",
+      "title": {
+        "en": "Departure"
+      }
+    },
+    {
+      "id": "25",
+      "title": {
+        "en": "Landscape"
+      }
+    },
+    {
+      "id": "26",
+      "title": {
+        "en": "Beech"
+      }
+    },
+    {
+      "id": "27",
+      "title": {
+        "en": "Sherbet"
+      }
+    },
+    {
+      "id": "28",
+      "title": {
+        "en": "Hult"
+      }
+    },
+    {
+      "id": "29",
+      "title": {
+        "en": "Hult 64"
+      }
+    },
+    {
+      "id": "30",
+      "title": {
+        "en": "Drywet"
+      }
+    },
+    {
+      "id": "31",
+      "title": {
+        "en": "Jul"
+      }
+    },
+    {
+      "id": "32",
+      "title": {
+        "en": "Grintage"
+      }
+    },
+    {
+      "id": "33",
+      "title": {
+        "en": "Rewhi"
+      }
+    },
+    {
+      "id": "34",
+      "title": {
+        "en": "Tertiary"
+      }
+    },
+    {
+      "id": "35",
+      "title": {
+        "en": "Fire"
+      }
+    },
+    {
+      "id": "36",
+      "title": {
+        "en": "Icefire"
+      }
+    },
+    {
+      "id": "37",
+      "title": {
+        "en": "Cyane"
+      }
+    },
+    {
+      "id": "38",
+      "title": {
+        "en": "Light Pink"
+      }
+    },
+    {
+      "id": "39",
+      "title": {
+        "en": "Autumn"
+      }
+    },
+    {
+      "id": "40",
+      "title": {
+        "en": "Magenta"
+      }
+    },
+    {
+      "id": "41",
+      "title": {
+        "en": "Magred"
+      }
+    },
+    {
+      "id": "42",
+      "title": {
+        "en": "Yelmag"
+      }
+    },
+    {
+      "id": "43",
+      "title": {
+        "en": "Yelblu"
+      }
+    },
+    {
+      "id": "44",
+      "title": {
+        "en": "Orange & Teal"
+      }
+    },
+    {
+      "id": "45",
+      "title": {
+        "en": "Tiamat"
+      }
+    },
+    {
+      "id": "46",
+      "title": {
+        "en": "April Night"
+      }
+    },
+    {
+      "id": "47",
+      "title": {
+        "en": "Orangery"
+      }
+    },
+    {
+      "id": "48",
+      "title": {
+        "en": "C9"
+      }
+    },
+    {
+      "id": "49",
+      "title": {
+        "en": "Sakura"
+      }
+    },
+    {
+      "id": "50",
+      "title": {
+        "en": "Aurora"
+      }
+    },
+    {
+      "id": "51",
+      "title": {
+        "en": "Atlantica"
+      }
+    },
+    {
+      "id": "52",
+      "title": {
+        "en": "C9 2"
+      }
+    },
+    {
+      "id": "53",
+      "title": {
+        "en": "C9 New"
+      }
+    },
+    {
+      "id": "54",
+      "title": {
+        "en": "Temperature"
+      }
+    },
+    {
+      "id": "55",
+      "title": {
+        "en": "Aurora 2"
+      }
+    },
+    {
+      "id": "56",
+      "title": {
+        "en": "Retro Clown"
+      }
+    },
+    {
+      "id": "57",
+      "title": {
+        "en": "Candy"
+      }
+    },
+    {
+      "id": "58",
+      "title": {
+        "en": "Toxy Reaf"
+      }
+    },
+    {
+      "id": "59",
+      "title": {
+        "en": "Fairy Reaf"
+      }
+    },
+    {
+      "id": "60",
+      "title": {
+        "en": "Semi Blue"
+      }
+    },
+    {
+      "id": "61",
+      "title": {
+        "en": "Pink Candy"
+      }
+    },
+    {
+      "id": "62",
+      "title": {
+        "en": "Red Reaf"
+      }
+    },
+    {
+      "id": "63",
+      "title": {
+        "en": "Aqua Flash"
+      }
+    },
+    {
+      "id": "64",
+      "title": {
+        "en": "Yelblu Hot"
+      }
+    },
+    {
+      "id": "65",
+      "title": {
+        "en": "Lite Light"
+      }
+    },
+    {
+      "id": "66",
+      "title": {
+        "en": "Red Flash"
+      }
+    },
+    {
+      "id": "67",
+      "title": {
+        "en": "Blink Red"
+      }
+    },
+    {
+      "id": "68",
+      "title": {
+        "en": "Red Shift"
+      }
+    },
+    {
+      "id": "69",
+      "title": {
+        "en": "Red Tide"
+      }
+    },
+    {
+      "id": "70",
+      "title": {
+        "en": "Candy2"
       }
     }
   ]

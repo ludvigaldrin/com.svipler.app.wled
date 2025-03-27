@@ -37,55 +37,673 @@
     {
       "id": "4",
       "title": {
-        "en": "Fade"
+        "en": "Wipe Random"
       }
     },
     {
       "id": "5",
       "title": {
-        "en": "Colorloop"
+        "en": "Random Colors"
       }
     },
     {
       "id": "6",
       "title": {
-        "en": "Rainbow"
+        "en": "Sweep"
       }
     },
     {
       "id": "7",
       "title": {
-        "en": "Scan"
+        "en": "Dynamic"
       }
     },
     {
       "id": "8",
       "title": {
-        "en": "Dual Scan"
+        "en": "Colorloop"
       }
     },
     {
       "id": "9",
       "title": {
-        "en": "Fade Out"
+        "en": "Rainbow"
       }
     },
     {
       "id": "10",
       "title": {
-        "en": "Chase"
+        "en": "Scan"
       }
     },
     {
       "id": "11",
       "title": {
-        "en": "Chase Rainbow"
+        "en": "Scan Dual"
       }
     },
     {
       "id": "12",
       "title": {
+        "en": "Fade"
+      }
+    },
+    {
+      "id": "13",
+      "title": {
+        "en": "Theater"
+      }
+    },
+    {
+      "id": "14",
+      "title": {
+        "en": "Theater Rainbow"
+      }
+    },
+    {
+      "id": "15",
+      "title": {
         "en": "Running"
+      }
+    },
+    {
+      "id": "16",
+      "title": {
+        "en": "Saw"
+      }
+    },
+    {
+      "id": "17",
+      "title": {
+        "en": "Twinkle"
+      }
+    },
+    {
+      "id": "18",
+      "title": {
+        "en": "Dissolve"
+      }
+    },
+    {
+      "id": "19",
+      "title": {
+        "en": "Dissolve Rnd"
+      }
+    },
+    {
+      "id": "20",
+      "title": {
+        "en": "Sparkle"
+      }
+    },
+    {
+      "id": "21",
+      "title": {
+        "en": "Sparkle Dark"
+      }
+    },
+    {
+      "id": "22",
+      "title": {
+        "en": "Sparkle+"
+      }
+    },
+    {
+      "id": "23",
+      "title": {
+        "en": "Strobe"
+      }
+    },
+    {
+      "id": "24",
+      "title": {
+        "en": "Strobe Rainbow"
+      }
+    },
+    {
+      "id": "25",
+      "title": {
+        "en": "Strobe Mega"
+      }
+    },
+    {
+      "id": "26",
+      "title": {
+        "en": "Blink Rainbow"
+      }
+    },
+    {
+      "id": "27",
+      "title": {
+        "en": "Android"
+      }
+    },
+    {
+      "id": "28",
+      "title": {
+        "en": "Chase"
+      }
+    },
+    {
+      "id": "29",
+      "title": {
+        "en": "Chase Random"
+      }
+    },
+    {
+      "id": "30",
+      "title": {
+        "en": "Chase Rainbow"
+      }
+    },
+    {
+      "id": "31",
+      "title": {
+        "en": "Chase Flash"
+      }
+    },
+    {
+      "id": "32",
+      "title": {
+        "en": "Chase Flash Rnd"
+      }
+    },
+    {
+      "id": "33",
+      "title": {
+        "en": "Rainbow Runner"
+      }
+    },
+    {
+      "id": "34",
+      "title": {
+        "en": "Colorful"
+      }
+    },
+    {
+      "id": "35",
+      "title": {
+        "en": "Traffic Light"
+      }
+    },
+    {
+      "id": "36",
+      "title": {
+        "en": "Sweep Random"
+      }
+    },
+    {
+      "id": "37",
+      "title": {
+        "en": "Chase 2"
+      }
+    },
+    {
+      "id": "38",
+      "title": {
+        "en": "Aurora"
+      }
+    },
+    {
+      "id": "39",
+      "title": {
+        "en": "Stream"
+      }
+    },
+    {
+      "id": "40",
+      "title": {
+        "en": "Scanner"
+      }
+    },
+    {
+      "id": "41",
+      "title": {
+        "en": "Lighthouse"
+      }
+    },
+    {
+      "id": "42",
+      "title": {
+        "en": "Fireworks"
+      }
+    },
+    {
+      "id": "43",
+      "title": {
+        "en": "Rain"
+      }
+    },
+    {
+      "id": "44",
+      "title": {
+        "en": "Tetrix"
+      }
+    },
+    {
+      "id": "45",
+      "title": {
+        "en": "Fire Flicker"
+      }
+    },
+    {
+      "id": "46",
+      "title": {
+        "en": "Gradient"
+      }
+    },
+    {
+      "id": "47",
+      "title": {
+        "en": "Loading"
+      }
+    },
+    {
+      "id": "48",
+      "title": {
+        "en": "Rolling Balls"
+      }
+    },
+    {
+      "id": "49",
+      "title": {
+        "en": "Fairy"
+      }
+    },
+    {
+      "id": "50",
+      "title": {
+        "en": "Two Dots"
+      }
+    },
+    {
+      "id": "51",
+      "title": {
+        "en": "Fairytwinkle"
+      }
+    },
+    {
+      "id": "52",
+      "title": {
+        "en": "Running Dual"
+      }
+    },
+    {
+      "id": "53",
+      "title": {
+        "en": "Chase 3"
+      }
+    },
+    {
+      "id": "54",
+      "title": {
+        "en": "Tri Wipe"
+      }
+    },
+    {
+      "id": "55",
+      "title": {
+        "en": "Tri Fade"
+      }
+    },
+    {
+      "id": "56",
+      "title": {
+        "en": "Lightning"
+      }
+    },
+    {
+      "id": "57",
+      "title": {
+        "en": "ICU"
+      }
+    },
+    {
+      "id": "58",
+      "title": {
+        "en": "Multi Comet"
+      }
+    },
+    {
+      "id": "59",
+      "title": {
+        "en": "Scanner Dual"
+      }
+    },
+    {
+      "id": "60",
+      "title": {
+        "en": "Stream 2"
+      }
+    },
+    {
+      "id": "61",
+      "title": {
+        "en": "Oscillate"
+      }
+    },
+    {
+      "id": "62",
+      "title": {
+        "en": "Pride 2015"
+      }
+    },
+    {
+      "id": "63",
+      "title": {
+        "en": "Juggle"
+      }
+    },
+    {
+      "id": "64",
+      "title": {
+        "en": "Palette"
+      }
+    },
+    {
+      "id": "65",
+      "title": {
+        "en": "Fire 2012"
+      }
+    },
+    {
+      "id": "66",
+      "title": {
+        "en": "Colorwaves"
+      }
+    },
+    {
+      "id": "67",
+      "title": {
+        "en": "Bpm"
+      }
+    },
+    {
+      "id": "68",
+      "title": {
+        "en": "Fill Noise"
+      }
+    },
+    {
+      "id": "69",
+      "title": {
+        "en": "Noise 1"
+      }
+    },
+    {
+      "id": "70",
+      "title": {
+        "en": "Noise 2"
+      }
+    },
+    {
+      "id": "71",
+      "title": {
+        "en": "Noise 3"
+      }
+    },
+    {
+      "id": "72",
+      "title": {
+        "en": "Noise 4"
+      }
+    },
+    {
+      "id": "73",
+      "title": {
+        "en": "Colortwinkles"
+      }
+    },
+    {
+      "id": "74",
+      "title": {
+        "en": "Lake"
+      }
+    },
+    {
+      "id": "75",
+      "title": {
+        "en": "Meteor"
+      }
+    },
+    {
+      "id": "76",
+      "title": {
+        "en": "Meteor Smooth"
+      }
+    },
+    {
+      "id": "77",
+      "title": {
+        "en": "Railway"
+      }
+    },
+    {
+      "id": "78",
+      "title": {
+        "en": "Ripple"
+      }
+    },
+    {
+      "id": "79",
+      "title": {
+        "en": "Twinklefox"
+      }
+    },
+    {
+      "id": "80",
+      "title": {
+        "en": "Twinklecat"
+      }
+    },
+    {
+      "id": "81",
+      "title": {
+        "en": "Halloween Eyes"
+      }
+    },
+    {
+      "id": "82",
+      "title": {
+        "en": "Solid Pattern"
+      }
+    },
+    {
+      "id": "83",
+      "title": {
+        "en": "Solid Pattern Tri"
+      }
+    },
+    {
+      "id": "84",
+      "title": {
+        "en": "Spots"
+      }
+    },
+    {
+      "id": "85",
+      "title": {
+        "en": "Spots Fade"
+      }
+    },
+    {
+      "id": "86",
+      "title": {
+        "en": "Glitter"
+      }
+    },
+    {
+      "id": "87",
+      "title": {
+        "en": "Candle"
+      }
+    },
+    {
+      "id": "88",
+      "title": {
+        "en": "Fireworks Starburst"
+      }
+    },
+    {
+      "id": "89",
+      "title": {
+        "en": "Fireworks 1D"
+      }
+    },
+    {
+      "id": "90",
+      "title": {
+        "en": "Bouncing Balls"
+      }
+    },
+    {
+      "id": "91",
+      "title": {
+        "en": "Sinelon"
+      }
+    },
+    {
+      "id": "92",
+      "title": {
+        "en": "Sinelon Dual"
+      }
+    },
+    {
+      "id": "93",
+      "title": {
+        "en": "Sinelon Rainbow"
+      }
+    },
+    {
+      "id": "94",
+      "title": {
+        "en": "Popcorn"
+      }
+    },
+    {
+      "id": "95",
+      "title": {
+        "en": "Drip"
+      }
+    },
+    {
+      "id": "96",
+      "title": {
+        "en": "Plasma"
+      }
+    },
+    {
+      "id": "97",
+      "title": {
+        "en": "Percent"
+      }
+    },
+    {
+      "id": "98",
+      "title": {
+        "en": "Ripple Rainbow"
+      }
+    },
+    {
+      "id": "99",
+      "title": {
+        "en": "Heartbeat"
+      }
+    },
+    {
+      "id": "100",
+      "title": {
+        "en": "Pacifica"
+      }
+    },
+    {
+      "id": "101",
+      "title": {
+        "en": "Candle Multi"
+      }
+    },
+    {
+      "id": "102",
+      "title": {
+        "en": "Solid Glitter"
+      }
+    },
+    {
+      "id": "103",
+      "title": {
+        "en": "Sunrise"
+      }
+    },
+    {
+      "id": "104",
+      "title": {
+        "en": "Phased"
+      }
+    },
+    {
+      "id": "105",
+      "title": {
+        "en": "Twinkleup"
+      }
+    },
+    {
+      "id": "106",
+      "title": {
+        "en": "Noise Pal"
+      }
+    },
+    {
+      "id": "107",
+      "title": {
+        "en": "Sine"
+      }
+    },
+    {
+      "id": "108",
+      "title": {
+        "en": "Phased Noise"
+      }
+    },
+    {
+      "id": "109",
+      "title": {
+        "en": "Flow"
+      }
+    },
+    {
+      "id": "110",
+      "title": {
+        "en": "Chunchun"
+      }
+    },
+    {
+      "id": "111",
+      "title": {
+        "en": "Dancing Shadows"
+      }
+    },
+    {
+      "id": "112",
+      "title": {
+        "en": "Washing Machine"
+      }
+    },
+    {
+      "id": "113",
+      "title": {
+        "en": "Blends"
+      }
+    },
+    {
+      "id": "114",
+      "title": {
+        "en": "TV Simulator"
+      }
+    },
+    {
+      "id": "115",
+      "title": {
+        "en": "Dynamic Smooth"
       }
     }
   ]

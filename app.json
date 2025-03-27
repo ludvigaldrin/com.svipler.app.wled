@@ -14,9 +14,7 @@
     "en": "Control your WLED devices with Homey"
   },
   "category": "lights",
-  "permissions": [
-    "homey:manager:api"
-  ],
+  "permissions": [],
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",
@@ -99,6 +97,29 @@
             }
           }
         ]
+      },
+      {
+        "id": "set_preset",
+        "title": {
+          "en": "Set Preset"
+        },
+        "titleFormatted": {
+          "en": "Set preset to [[preset]]"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "preset",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Preset"
+            }
+          }
+        ]
       }
     ]
   },
@@ -115,7 +136,8 @@
         "light_hue",
         "light_saturation",
         "wled_effect",
-        "wled_palette"
+        "wled_palette",
+        "wled_preset"
       ],
       "platforms": [
         "local"
@@ -375,6 +397,56 @@
           "id": "11",
           "title": {
             "en": "Party"
+          }
+        }
+      ]
+    },
+    "wled_preset": {
+      "type": "enum",
+      "title": {
+        "en": "Preset"
+      },
+      "desc": {
+        "en": "Select a WLED preset"
+      },
+      "getable": true,
+      "setable": true,
+      "uiComponent": "picker",
+      "values": [
+        {
+          "id": "0",
+          "title": {
+            "en": "No Preset"
+          }
+        },
+        {
+          "id": "1",
+          "title": {
+            "en": "Preset 1"
+          }
+        },
+        {
+          "id": "2",
+          "title": {
+            "en": "Preset 2"
+          }
+        },
+        {
+          "id": "3",
+          "title": {
+            "en": "Preset 3"
+          }
+        },
+        {
+          "id": "4",
+          "title": {
+            "en": "Preset 4"
+          }
+        },
+        {
+          "id": "5",
+          "title": {
+            "en": "Preset 5"
           }
         }
       ]
