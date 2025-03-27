@@ -7,7 +7,6 @@ class WLEDDevice extends Homey.Device {
   
   async onInit() {
     try {
-      this.log('WLED device initializing');
       
       // Get device settings
       const settings = this.getSettings();
@@ -23,8 +22,6 @@ class WLEDDevice extends Homey.Device {
       this.maxEffectId = settings.fxcount ? parseInt(settings.fxcount) - 1 : 255;
       this.maxPaletteId = settings.palcount ? parseInt(settings.palcount) - 1 : 255;
       this.maxPresetId = settings.presetcount ? parseInt(settings.presetcount) - 1 : 255;
-      this.log(`Initial max effect ID: ${this.maxEffectId}, max palette ID: ${this.maxPaletteId}, max preset ID: ${this.maxPresetId}`);
-      
       // Initialize capability values with defaults
       if (this.hasCapability('wled_effect') && !this.getCapabilityValue('wled_effect')) {
         await this.setCapabilityValue('wled_effect', "0").catch(this.error);
@@ -63,8 +60,7 @@ class WLEDDevice extends Homey.Device {
           this.error('Error initializing effects and palettes:', error);
         });
       }, 2000);
-      
-      this.log('WLED device initialization completed');
+
     } catch (error) {
       this.error(`Device initialization failed: ${error.message || error}`);
     }
@@ -659,14 +655,17 @@ class WLEDDevice extends Homey.Device {
         }
       }));
       
-      // Sort effects alphabetically by name
+      // Sort effects alphabetically by name, but keep "Solid" at the top
       effectOptions.sort((a, b) => {
+        // Keep "Solid" at the top
+        if (a.id === "0") return -1;
+        if (b.id === "0") return 1;
         return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
       });
       
       // Only log count during initial setup
       if (!this.effectsAndPalettesFetched) {
-        this.log(`Found ${effectOptions.length} effects`);
+       // this.log(`Found ${effectOptions.length} effects`);
       }
       
       // Update the capability options
@@ -692,14 +691,17 @@ class WLEDDevice extends Homey.Device {
         }
       }));
       
-      // Sort palettes alphabetically by name
+      // Sort palettes alphabetically by name, but keep "Default" at the top
       paletteOptions.sort((a, b) => {
+        // Keep "Default" at the top
+        if (a.id === "0") return -1;
+        if (b.id === "0") return 1;
         return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
       });
       
       // Only log count during initial setup
       if (!this.effectsAndPalettesFetched) {
-        this.log(`Found ${paletteOptions.length} palettes`);
+       // this.log(`Found ${paletteOptions.length} palettes`);
       }
       
       // Update the capability options
@@ -745,7 +747,7 @@ class WLEDDevice extends Homey.Device {
       
       // Only log count during initial setup
       if (!this.effectsAndPalettesFetched) {
-        this.log(`Found ${cleanPresetOptions.length - 1} presets`); // -1 to exclude "No Preset"
+       // this.log(`Found ${cleanPresetOptions.length - 1} presets`); // -1 to exclude "No Preset"
       }
       
       // Update the capability options
