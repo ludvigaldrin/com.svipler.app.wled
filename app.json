@@ -1386,7 +1386,7 @@
       "uiComponent": "picker",
       "values": [
         {
-          "id": "0",
+          "id": "-1",
           "title": {
             "en": "No Preset"
           }
@@ -1419,6 +1419,36 @@
           "id": "5",
           "title": {
             "en": "Preset 5"
+          }
+        },
+        {
+          "id": "6",
+          "title": {
+            "en": "Preset 6"
+          }
+        },
+        {
+          "id": "7",
+          "title": {
+            "en": "Preset 7"
+          }
+        },
+        {
+          "id": "8",
+          "title": {
+            "en": "Preset 8"
+          }
+        },
+        {
+          "id": "9",
+          "title": {
+            "en": "Preset 9"
+          }
+        },
+        {
+          "id": "10",
+          "title": {
+            "en": "Preset 10"
           }
         }
       ]

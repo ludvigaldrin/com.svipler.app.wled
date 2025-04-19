@@ -44,12 +44,17 @@ class WLEDDevice extends Homey.Device {
       this.fetchingEffectsAndPalettes = false;
       this.effectsAndPalettesFetched = false;
       
+      // Error tracking for backoff strategy
+      this.consecutiveErrors = 0;
+      this.maxBackoffTime = 60000; // Maximum backoff time: 1 minute
+      this.basePollingInterval = this.pollingInterval; // Save original polling interval
+      
       // Make sure API client is properly configured on each operation
       // Start with immediate state update with a shorter timeout
       setTimeout(() => this.updateDeviceState(), 1000);
       
       // Set up regular polling
-      this.pollTimer = this.homey.setInterval(() => this.updateDeviceState(), this.pollingInterval);
+      this.scheduleNextPoll();
       
       // Register all capability listeners
       this.registerCapabilityListeners();
@@ -280,6 +285,76 @@ class WLEDDevice extends Homey.Device {
     });
   }
   
+  // Schedule next poll with exponential backoff if needed
+  scheduleNextPoll() {
+    if (this.pollTimer) {
+      this.homey.clearTimeout(this.pollTimer);
+    }
+    
+    // Calculate backoff time based on consecutive errors
+    let interval = this.basePollingInterval;
+    if (this.consecutiveErrors > 0) {
+      // Exponential backoff: 2^consecutiveErrors * baseInterval, capped at maxBackoffTime
+      interval = Math.min(
+        this.basePollingInterval * Math.pow(2, this.consecutiveErrors - 1),
+        this.maxBackoffTime
+      );
+    }
+    
+    this.pollTimer = this.homey.setTimeout(() => this.updateDeviceState(), interval);
+  }
+  
+  // Set a preset by ID - called from flow card action
+  async setPreset(presetId) {
+    try {
+      // Validate the preset ID
+      if (presetId === undefined || presetId === null) {
+        throw new Error('No preset ID provided');
+      }
+      
+      // Set the capability value - this will trigger the capability listener
+      await this.setCapabilityValue('wled_preset', String(presetId));
+      return true;
+    } catch (error) {
+      this.error(`Error setting preset: ${error.message}`);
+      throw error;
+    }
+  }
+  
+  // Set an effect by ID - called from flow card action
+  async setEffect(effectId) {
+    try {
+      // Validate the effect ID
+      if (effectId === undefined || effectId === null) {
+        throw new Error('No effect ID provided');
+      }
+      
+      // Set the capability value - this will trigger the capability listener
+      await this.setCapabilityValue('wled_effect', String(effectId));
+      return true;
+    } catch (error) {
+      this.error(`Error setting effect: ${error.message}`);
+      throw error;
+    }
+  }
+  
+  // Set a palette by ID - called from flow card action
+  async setPalette(paletteId) {
+    try {
+      // Validate the palette ID
+      if (paletteId === undefined || paletteId === null) {
+        throw new Error('No palette ID provided');
+      }
+      
+      // Set the capability value - this will trigger the capability listener
+      await this.setCapabilityValue('wled_palette', String(paletteId));
+      return true;
+    } catch (error) {
+      this.error(`Error setting palette: ${error.message}`);
+      throw error;
+    }
+  }
+  
   async getEffectsList(query = '') {
     try {
       // Get effects from capability options instead of storing separately
@@ -438,10 +513,14 @@ class WLEDDevice extends Homey.Device {
       if (!response || !response.data) {
         this.error('Invalid response from WLED API');
         await this.setUnavailable('Invalid response from device');
+        // Increase consecutive error count
+        this.consecutiveErrors++;
+        this.scheduleNextPoll();
         return;
       }
       
-      // If we get here, the device is available
+      // If we get here, the device is available - reset error count
+      this.consecutiveErrors = 0;
       this.setAvailable();
       
       const state = response.data;
@@ -484,9 +563,34 @@ class WLEDDevice extends Homey.Device {
         }
       }
       
-      // Preset - use WLED's preset ID directly (-1 for none, positive for presets)
+      // Preset - handle the preset ID correctly
       if (state.ps !== undefined) {
-        await this.setCapabilityValue('wled_preset', String(state.ps)).catch(this.error);
+        try {
+          const presetId = String(state.ps);
+          
+          // Check if we have this preset in our capability options
+          const presetOptions = await this.getCapabilityOptions('wled_preset');
+          
+          // Ensure we have the preset ID in our options
+          if (presetOptions && presetOptions.values) {
+            const hasPresetId = presetOptions.values.some(option => option.id === presetId);
+            
+            if (!hasPresetId && parseInt(presetId) > 0) {
+              // We need to add this preset ID to our options
+              await this.fetchEffectsAndPalettes();
+            } else {
+              // It's a known preset ID, just set it
+              await this.setCapabilityValue('wled_preset', presetId).catch(error => {
+                this.error(`Error setting preset value: ${error.message}`);
+              });
+            }
+          } else {
+            // No options yet, force a fetch
+            await this.fetchEffectsAndPalettes();
+          }
+        } catch (presetError) {
+          this.error(`Error handling preset state: ${presetError.message}`);
+        }
       }
       
       // Update last state time
@@ -498,15 +602,25 @@ class WLEDDevice extends Homey.Device {
           this.error('Failed to fetch effects and palettes:', error.message);
         });
       }
+      
+      // Schedule next poll with normal interval
+      this.scheduleNextPoll();
     } catch (error) {
+      // Increment consecutive error count
+      this.consecutiveErrors++;
+      
       // Set device as unavailable if we get a connection error
       if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || 
-          error.code === 'ECONNABORTED' || error.code === 'ECONNRESET') {
+          error.code === 'ECONNABORTED' || error.code === 'ECONNRESET' ||
+          error.code === 'EHOSTUNREACH') {
         this.error(`Connection error: ${error.message}`);
         await this.setUnavailable('Cannot connect to device');
       } else {
         this.error(`Error fetching device state: ${error.message || error}`);
       }
+      
+      // Schedule next poll with backoff
+      this.scheduleNextPoll();
     }
   }
   
@@ -720,17 +834,38 @@ class WLEDDevice extends Homey.Device {
     try {
       // Ensure we always have the "No Preset" option
       const defaultPreset = {
-        id: "-1", // Changed to match WLED's -1 for no preset
+        id: "-1", // WLED uses -1 for no preset
         name: "No Preset"
       };
 
       // Convert to format expected by capability options
-      const presetOptions = [defaultPreset, ...presets].map((preset) => ({
+      let presetOptions = [defaultPreset];
+      
+      // Add all the actual presets from the device
+      presets.forEach(preset => {
+        presetOptions.push({
+          id: preset.id,
+          name: preset.name || `Preset ${preset.id}`
+        });
+      });
+      
+      // Make sure we have at least the first 10 preset IDs for default
+      for (let i = 1; i <= 10; i++) {
+        const idStr = String(i);
+        if (!presetOptions.some(p => p.id === idStr)) {
+          presetOptions.push({
+            id: idStr,
+            name: `Preset ${i}`
+          });
+        }
+      }
+      
+      // Convert to capability options format
+      presetOptions = presetOptions.map(preset => ({
         id: preset.id,
         title: {
-          en: preset.name || `Preset ${preset.id}`
-        },
-        originalName: preset.name || `Preset ${preset.id}`
+          en: preset.name
+        }
       }));
       
       // Sort presets by ID numerically, keeping "No Preset" at the top
@@ -742,17 +877,9 @@ class WLEDDevice extends Homey.Device {
         return parseInt(a.id) - parseInt(b.id);
       });
       
-      // Remove the temporary originalName property
-      const cleanPresetOptions = presetOptions.map(({id, title}) => ({id, title}));
-      
-      // Only log count during initial setup
-      if (!this.effectsAndPalettesFetched) {
-       // this.log(`Found ${cleanPresetOptions.length - 1} presets`); // -1 to exclude "No Preset"
-      }
-      
       // Update the capability options
       await this.setCapabilityOptions('wled_preset', {
-        values: cleanPresetOptions
+        values: presetOptions
       }).catch(err => this.error(`Failed to set preset options: ${err.message}`));
       
       return true;
@@ -864,7 +991,7 @@ class WLEDDevice extends Homey.Device {
     
     // Clean up resources
     if (this.pollTimer) {
-      this.homey.clearInterval(this.pollTimer);
+      this.homey.clearTimeout(this.pollTimer);
       this.pollTimer = null;
     }
   }
@@ -878,7 +1005,7 @@ class WLEDDevice extends Homey.Device {
       
       // Clear existing polling
       if (this.pollTimer) {
-        this.homey.clearInterval(this.pollTimer);
+        this.homey.clearTimeout(this.pollTimer);
       }
       
       // Update polling interval if changed
@@ -901,7 +1028,7 @@ class WLEDDevice extends Homey.Device {
       }
       
       // Restart polling with new settings
-      this.pollTimer = this.homey.setInterval(() => this.updateDeviceState(), this.pollingInterval);
+      this.scheduleNextPoll();
       
       // Refresh device state immediately
       await this.updateDeviceState();
