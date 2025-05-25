@@ -255,7 +255,6 @@ class WLEDDevice extends Homey.Device {
 
     // Preset capability
     this.registerCapabilityListener('wled_preset', async (value) => {
-      this.log(`=== PRESET CAPABILITY LISTENER TRIGGERED with value: ${value} ===`);
       try {
         const settings = this.getSettings();
         const ipAddress = settings.ip || settings.address;
@@ -283,7 +282,6 @@ class WLEDDevice extends Homey.Device {
         // Special case: -1 means no preset (turn off preset)
         if (presetId === -1) {
           await apiClient.post('/json/state', { ps: -1 });
-          this.log('Preset turned off successfully');
           return true;
         }
         
@@ -303,9 +301,7 @@ class WLEDDevice extends Homey.Device {
           }
           
           // Send the preset ID to WLED
-          this.log(`Setting preset to ID: ${presetId}`);
           await apiClient.post('/json/state', { ps: presetId });
-          this.log(`Preset ${presetId} set successfully`);
         } else {
           this.error(`Invalid preset ID: ${presetId}. Must be -1 (no preset) or > 0`);
           throw new Error(`Invalid preset ID: ${presetId}`);
@@ -380,11 +376,8 @@ class WLEDDevice extends Homey.Device {
         throw new Error('No preset ID provided');
       }
       
-      this.log(`Flow action: Setting preset to ${presetId}`);
-      
       // Get current value to see if it's changing
       const currentValue = this.getCapabilityValue('wled_preset');
-      this.log(`Current preset capability value: ${currentValue}, new value: ${String(presetId)}`);
       
       // Make the API call directly to WLED device
       const settings = this.getSettings();
@@ -408,14 +401,11 @@ class WLEDDevice extends Homey.Device {
       }
       
       // Make the API call
-      this.log(`Making API call to WLED: POST /json/state with { ps: ${presetIdNum} }`);
       await apiClient.post('/json/state', { ps: presetIdNum });
-      this.log(`API call successful: Preset ${presetIdNum} applied to WLED device`);
       
       // Update the capability value (this won't trigger the listener since we're setting it directly)
       await this.setCapabilityValue('wled_preset', String(presetId));
       
-      this.log(`Preset ${presetId} set successfully via flow action`);
       return true;
     } catch (error) {
       this.error(`Error setting preset via flow action: ${error.message}`);
@@ -750,11 +740,8 @@ class WLEDDevice extends Homey.Device {
       
       // Now fetch presets separately
       try {
-        this.log('Fetching presets from /presets.json');
         const presetsResponse = await apiClient.get('/presets.json');
         const presets = presetsResponse.data;
-        
-        this.log(`Raw presets response:`, JSON.stringify(presets, null, 2));
         
         if (presets) {
           // Filter out non-preset entries and convert to array format
@@ -767,9 +754,6 @@ class WLEDDevice extends Homey.Device {
                      !id.startsWith('_') && // Not a metadata entry
                      parseInt(id) > 0; // Valid preset ID (greater than 0)
               
-              if (!isValid) {
-                this.log(`Filtering out preset ${id}:`, preset);
-              }
               return isValid;
             })
             .map(([id, preset]) => {
@@ -787,21 +771,16 @@ class WLEDDevice extends Homey.Device {
               };
             });
           
-          this.log(`Processed presets:`, presetArray);
-          
           // Update the maximum preset ID based on actual presets
           this.maxPresetId = Math.max(...presetArray.map(p => parseInt(p.id, 10)), 0);
-          this.log(`Updated maxPresetId to: ${this.maxPresetId}`);
           
           // Update device capability options
           await this._updatePresetsCapability(presetArray);
         } else {
-          this.log('No presets data received, using empty array');
           await this._updatePresetsCapability([]);
         }
       } catch (presetError) {
         this.error('Error fetching presets:', presetError.message);
-        this.log('Falling back to empty presets array');
         await this._updatePresetsCapability([]);
       }
       
@@ -869,11 +848,6 @@ class WLEDDevice extends Homey.Device {
         return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
       });
       
-      // Only log count during initial setup
-      if (!this.effectsAndPalettesFetched) {
-       // this.log(`Found ${effectOptions.length} effects`);
-      }
-      
       // Update the capability options
       await this.setCapabilityOptions('wled_effect', {
         values: effectOptions
@@ -905,11 +879,6 @@ class WLEDDevice extends Homey.Device {
         return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
       });
       
-      // Only log count during initial setup
-      if (!this.effectsAndPalettesFetched) {
-       // this.log(`Found ${paletteOptions.length} palettes`);
-      }
-      
       // Update the capability options
       await this.setCapabilityOptions('wled_palette', {
         values: paletteOptions
@@ -924,8 +893,6 @@ class WLEDDevice extends Homey.Device {
   
   async _updatePresetsCapability(presets) {
     try {
-      this.log(`Updating presets capability with ${presets.length} presets:`, presets);
-      
       // Ensure we always have the "No Preset" option
       const defaultPreset = {
         id: "-1", // WLED uses -1 for no preset
@@ -954,8 +921,6 @@ class WLEDDevice extends Homey.Device {
         }
       }
       
-      this.log(`Preset options before formatting:`, presetOptions);
-      
       // Convert to capability options format
       presetOptions = presetOptions.map(preset => ({
         id: preset.id,
@@ -973,94 +938,14 @@ class WLEDDevice extends Homey.Device {
         return parseInt(a.id) - parseInt(b.id);
       });
       
-      this.log(`Final preset options:`, presetOptions);
-      
       // Update the capability options
       await this.setCapabilityOptions('wled_preset', {
         values: presetOptions
       }).catch(err => this.error(`Failed to set preset options: ${err.message}`));
       
-      this.log('Preset capability options updated successfully');
       return true;
     } catch (error) {
       this.error('Error updating presets capability:', error);
-      return false;
-    }
-  }
-  
-  // Test method for debugging preset functionality
-  async testPresetFunctionality() {
-    try {
-      this.log('=== PRESET DEBUG TEST START ===');
-      
-      const settings = this.getSettings();
-      const ipAddress = settings.ip || settings.address;
-      
-      if (!ipAddress) {
-        this.error('No IP address configured');
-        return false;
-      }
-      
-      // Test 1: Check if we can reach the device
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
-      this.log('Test 1: Checking device connectivity...');
-      const stateResponse = await apiClient.get('/json/state');
-      this.log('Device state response:', JSON.stringify(stateResponse.data, null, 2));
-      
-      // Test 2: Check presets.json endpoint
-      this.log('Test 2: Checking presets.json endpoint...');
-      try {
-        const presetsResponse = await apiClient.get('/presets.json');
-        this.log('Presets.json response:', JSON.stringify(presetsResponse.data, null, 2));
-      } catch (presetError) {
-        this.error('Failed to fetch presets.json:', presetError.message);
-      }
-      
-      // Test 3: Check current capability options
-      this.log('Test 3: Checking current preset capability options...');
-      try {
-        const currentOptions = await this.getCapabilityOptions('wled_preset');
-        this.log('Current preset options:', JSON.stringify(currentOptions, null, 2));
-      } catch (optionsError) {
-        this.error('Failed to get capability options:', optionsError.message);
-      }
-      
-      // Test 4: Try setting preset -1 (no preset)
-      this.log('Test 4: Testing preset -1 (no preset)...');
-      try {
-        await apiClient.post('/json/state', { ps: -1 });
-        this.log('Successfully set preset to -1 (no preset)');
-      } catch (noPresetError) {
-        this.error('Failed to set no preset:', noPresetError.message);
-      }
-      
-      // Test 5: Try setting preset 1
-      this.log('Test 5: Testing preset 1...');
-      try {
-        await apiClient.post('/json/state', { ps: 1 });
-        this.log('Successfully set preset to 1');
-        
-        // Check if it actually applied
-        setTimeout(async () => {
-          try {
-            const checkResponse = await apiClient.get('/json/state');
-            this.log('State after setting preset 1:', JSON.stringify(checkResponse.data.state, null, 2));
-          } catch (checkError) {
-            this.error('Failed to check state after preset 1:', checkError.message);
-          }
-        }, 1000);
-      } catch (preset1Error) {
-        this.error('Failed to set preset 1:', preset1Error.message);
-      }
-      
-      this.log('=== PRESET DEBUG TEST END ===');
-      return true;
-    } catch (error) {
-      this.error('Preset test failed:', error.message);
       return false;
     }
   }
