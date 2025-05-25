@@ -40,12 +40,12 @@
       "rgb"
     ]
   },
-  "homepage": "https://github.com/svipler/com.svipler.athom.wled",
+  "homepage": "https://github.com/svipler/com.svipler.app.wled",
   "support": "https://community.homey.app/t/app-pro-wled-controller/133405",
   "bugs": {
     "url": "https://community.homey.app/t/app-pro-wled-controller/133405"
   },
-  "source": "https://github.com/svipler/com.svipler.athom.wled",
+  "source": "https://github.com/sviplercom.svipler.app.wled",
   "brandColor": "#ff0000",
   "brandName": "WLED",
   "homeyCommunityTopicId": 133405

@@ -43,12 +43,27 @@ class WLEDApp extends Homey.App {
     this.homey.flow.getActionCard('set_preset')
       .registerRunListener(async (args, state) => {
         const { device, preset } = args;
-        return device.setPreset(preset.id);
+        this.log(`Flow card: Setting preset ${preset.id} on device ${device.getName()}`);
+        try {
+          const result = await device.setPreset(preset.id);
+          this.log(`Flow card: Preset ${preset.id} set successfully`);
+          return result;
+        } catch (error) {
+          this.error(`Flow card: Failed to set preset ${preset.id}:`, error.message);
+          throw error;
+        }
       })
       .getArgument('preset')
       .registerAutocompleteListener(async (query, args) => {
         const { device } = args;
-        return device.getPresetsList(query);
+        try {
+          const presets = await device.getPresetsList(query);
+          this.log(`Flow card autocomplete: Found ${presets.length} presets for query "${query}"`);
+          return presets;
+        } catch (error) {
+          this.error(`Flow card autocomplete: Error getting presets:`, error.message);
+          return [];
+        }
       });
   }
 }
