@@ -342,11 +342,42 @@ class WLEDDevice extends Homey.Device {
         throw new Error('No effect ID provided');
       }
       
-      // Set the capability value - this will trigger the capability listener
+      // Make the API call directly to WLED device
+      const settings = this.getSettings();
+      const ipAddress = settings.ip || settings.address;
+      
+      if (!ipAddress) {
+        this.error('No IP address configured for effect setting');
+        throw new Error('No IP address configured');
+      }
+      
+      // Create API client
+      const apiClient = axios.create({
+        baseURL: `http://${ipAddress}`,
+        timeout: 5000,
+      });
+      
+      // Convert to number and validate
+      const effectIdNum = parseInt(effectId, 10);
+      if (isNaN(effectIdNum) || effectIdNum < 0 || effectIdNum > this.maxEffectId) {
+        throw new Error(`Invalid effect ID: ${effectId}. Must be between 0 and ${this.maxEffectId}`);
+      }
+      
+      // Make the API call - set effect for first segment
+      await apiClient.post('/json/state', {
+        seg: [
+          {
+            fx: effectIdNum
+          }
+        ]
+      });
+      
+      // Update the capability value (this won't trigger the listener since we're setting it directly)
       await this.setCapabilityValue('wled_effect', String(effectId));
+      
       return true;
     } catch (error) {
-      this.error(`Error setting effect: ${error.message}`);
+      this.error(`Error setting effect via flow action: ${error.message}`);
       throw error;
     }
   }
@@ -359,11 +390,42 @@ class WLEDDevice extends Homey.Device {
         throw new Error('No palette ID provided');
       }
       
-      // Set the capability value - this will trigger the capability listener
+      // Make the API call directly to WLED device
+      const settings = this.getSettings();
+      const ipAddress = settings.ip || settings.address;
+      
+      if (!ipAddress) {
+        this.error('No IP address configured for palette setting');
+        throw new Error('No IP address configured');
+      }
+      
+      // Create API client
+      const apiClient = axios.create({
+        baseURL: `http://${ipAddress}`,
+        timeout: 5000,
+      });
+      
+      // Convert to number and validate
+      const paletteIdNum = parseInt(paletteId, 10);
+      if (isNaN(paletteIdNum) || paletteIdNum < 0 || paletteIdNum > this.maxPaletteId) {
+        throw new Error(`Invalid palette ID: ${paletteId}. Must be between 0 and ${this.maxPaletteId}`);
+      }
+      
+      // Make the API call - set palette for first segment
+      await apiClient.post('/json/state', {
+        seg: [
+          {
+            pal: paletteIdNum
+          }
+        ]
+      });
+      
+      // Update the capability value (this won't trigger the listener since we're setting it directly)
       await this.setCapabilityValue('wled_palette', String(paletteId));
+      
       return true;
     } catch (error) {
-      this.error(`Error setting palette: ${error.message}`);
+      this.error(`Error setting palette via flow action: ${error.message}`);
       throw error;
     }
   }
