@@ -35,6 +35,23 @@ class WLEDDevice extends Homey.Device {
         await this.setCapabilityValue('wled_preset', "0").catch(this.error);
       }
       
+      // Add light_temperature capability if it doesn't exist (for existing devices)
+      if (!this.hasCapability('light_temperature')) {
+        await this.addCapability('light_temperature').catch(this.error);
+      }
+      
+      if (this.hasCapability('light_temperature') && !this.getCapabilityValue('light_temperature')) {
+        await this.setCapabilityValue('light_temperature', 0.5).catch(this.error);
+      }
+      
+      if (this.hasCapability('light_hue') && !this.getCapabilityValue('light_hue')) {
+        await this.setCapabilityValue('light_hue', 0).catch(this.error);
+      }
+      
+      if (this.hasCapability('light_saturation') && !this.getCapabilityValue('light_saturation')) {
+        await this.setCapabilityValue('light_saturation', 0).catch(this.error);
+      }
+      
       // Set up polling intervals
       this.lastStateUpdate = 0;
       this.pollingInterval = settings.polling_interval || 
@@ -168,6 +185,46 @@ class WLEDDevice extends Homey.Device {
         throw error;
       }
     }, 500);
+    
+    // Color temperature capability
+    this.registerCapabilityListener('light_temperature', async (value) => {
+      try {
+        const settings = this.getSettings();
+        const ipAddress = settings.ip || settings.address;
+        
+        if (!ipAddress) {
+          throw new Error('No IP address configured');
+        }
+        
+        // Create fresh client for this request
+        const apiClient = axios.create({
+          baseURL: `http://${ipAddress}`,
+          timeout: 5000,
+        });
+        
+        // Convert 0-1 to WLED color temperature range (0-255)
+        // 0 = warm (~2700K, cct=0), 1 = cold (~6500K, cct=255)
+        const colorTemp = Math.round(value * 255);
+        
+        // Set color temperature for first segment
+        // Note: For RGB strips, set to white first for CCT simulation to work
+        await apiClient.post('/json/state', { 
+          seg: [
+            {
+              col: [
+                [255, 255, 255]  // Set to white first for CCT simulation
+              ],
+              cct: colorTemp
+            }
+          ]
+        });
+        
+        return true;
+      } catch (error) {
+        this.error(`Error setting color temperature: ${error.message}`);
+        throw error;
+      }
+    });
     
     // Effect capability
     this.registerCapabilityListener('wled_effect', async (value) => {
@@ -681,6 +738,14 @@ class WLEDDevice extends Homey.Device {
             await this.setCapabilityValue('wled_palette', String(segment.pal)).catch(this.error);
           }
         }
+      }
+      
+      // Color temperature capability
+      if (this.hasCapability('light_temperature') && state.seg && state.seg[0] && state.seg[0].cct !== undefined) {
+        // Convert WLED color temperature range (0-255) to 0-1
+        // 0 = warm (~2700K, value=0), 255 = cold (~6500K, value=1)
+        const tempValue = state.seg[0].cct / 255;
+        await this.setCapabilityValue('light_temperature', Math.max(0, Math.min(1, tempValue))).catch(this.error);
       }
       
       // Preset - handle the preset ID correctly

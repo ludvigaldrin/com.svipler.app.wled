@@ -9,6 +9,7 @@
     "dim",
     "light_hue",
     "light_saturation",
+    "light_temperature",
     "wled_effect", 
     "wled_palette",
     "wled_preset"
