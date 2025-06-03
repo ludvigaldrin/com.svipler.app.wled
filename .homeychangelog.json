@@ -10,5 +10,8 @@
   },
   "1.0.3": {
     "en": "Fixed Effect, Palette, Preset in flow so they work. Also changed so we have correct source code repo link"
+  },
+  "1.1.0": {
+    "en": "Support for Light Temperature"
   }
 }
