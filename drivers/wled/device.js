@@ -209,14 +209,13 @@ class WLEDDevice extends Homey.Device {
         // Set color temperature for first segment
         // Note: For RGB strips, set to white first for CCT simulation to work
         await apiClient.post('/json/state', { 
-          seg: [
-            {
-              col: [
-                [255, 255, 255]  // Set to white first for CCT simulation
-              ],
-              cct: colorTemp
-            }
-          ]
+        seg: [
+          {
+            col: [
+              [0, 0, 0, 255]  // RGB off, white channel on
+            ],
+            cct: colorTemp
+          }]
         });
         
         return true;
