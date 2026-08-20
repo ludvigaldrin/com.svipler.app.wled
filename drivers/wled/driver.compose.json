@@ -10,7 +10,8 @@
     "light_hue",
     "light_saturation",
     "light_temperature",
-    "wled_effect", 
+    "light_mode",
+    "wled_effect",
     "wled_palette",
     "wled_preset"
   ],
@@ -79,7 +80,10 @@
           "label": {
             "en": "IP Address"
           },
-          "value": "192.168.1.100"
+          "value": "192.168.1.100",
+          "hint": {
+            "en": "The IP address of the WLED device. This is kept up to date automatically when the device is discovered on the network."
+          }
         },
         {
           "id": "pollInterval",
@@ -89,9 +93,12 @@
           },
           "value": 5,
           "min": 1,
-          "max": 60
+          "max": 60,
+          "hint": {
+            "en": "How often Homey asks the device for its current state."
+          }
         }
       ]
     }
   ]
-} 
+}

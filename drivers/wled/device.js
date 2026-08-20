@@ -21,7 +21,6 @@ class WLEDDevice extends Homey.Device {
       // Set default values for effect/palette/preset ranges
       this.maxEffectId = settings.fxcount ? parseInt(settings.fxcount) - 1 : 255;
       this.maxPaletteId = settings.palcount ? parseInt(settings.palcount) - 1 : 255;
-      this.maxPresetId = settings.presetcount ? parseInt(settings.presetcount) - 1 : 255;
       // Initialize capability values with defaults
       if (this.hasCapability('wled_effect') && !this.getCapabilityValue('wled_effect')) {
         await this.setCapabilityValue('wled_effect', "0").catch(this.error);
@@ -31,13 +30,25 @@ class WLEDDevice extends Homey.Device {
         await this.setCapabilityValue('wled_palette', "0").catch(this.error);
       }
 
+      // -1 is WLED's "no preset", 0 is not a valid option
       if (this.hasCapability('wled_preset') && !this.getCapabilityValue('wled_preset')) {
-        await this.setCapabilityValue('wled_preset', "0").catch(this.error);
+        await this.setCapabilityValue('wled_preset', "-1").catch(this.error);
       }
       
       // Add light_temperature capability if it doesn't exist (for existing devices)
       if (!this.hasCapability('light_temperature')) {
         await this.addCapability('light_temperature').catch(this.error);
+      }
+      
+      // light_mode tells Homey's color picker whether the light is showing a
+      // color or a white temperature. Without it the temperature slider has no
+      // effect in the UI.
+      if (!this.hasCapability('light_mode')) {
+        await this.addCapability('light_mode').catch(this.error);
+      }
+      
+      if (this.hasCapability('light_mode') && !this.getCapabilityValue('light_mode')) {
+        await this.setCapabilityValue('light_mode', 'color').catch(this.error);
       }
       
       if (this.hasCapability('light_temperature') && !this.getCapabilityValue('light_temperature')) {
@@ -93,21 +104,7 @@ class WLEDDevice extends Homey.Device {
     // On/off capability
     this.registerCapabilityListener('onoff', async (value) => {
       try {
-        const settings = this.getSettings();
-        const ipAddress = settings.ip || settings.address;
-        
-        if (!ipAddress) {
-          throw new Error('No IP address configured');
-        }
-        
-        // Create fresh client for this request
-        const apiClient = axios.create({
-          baseURL: `http://${ipAddress}`,
-          timeout: 5000,
-        });
-        
-        // Set on/off state
-        await apiClient.post('/json/state', { on: value });
+        await this._post('/json/state', { on: value });
         
         return true;
       } catch (error) {
@@ -119,24 +116,13 @@ class WLEDDevice extends Homey.Device {
     // Dimmer capability
     this.registerCapabilityListener('dim', async (value) => {
       try {
-        const settings = this.getSettings();
-        const ipAddress = settings.ip || settings.address;
-        
-        if (!ipAddress) {
-          throw new Error('No IP address configured');
-        }
-        
-        // Create fresh client for this request
-        const apiClient = axios.create({
-          baseURL: `http://${ipAddress}`,
-          timeout: 5000,
+        // Convert 0-1 to 0-255 brightness. Dimming above zero also switches the
+        // device on - setting bri while WLED is off has no visible effect, which
+        // made flows that only dim look like they did nothing.
+        await this._post('/json/state', {
+          bri: Math.round(value * 255),
+          on: value > 0
         });
-        
-        // Convert 0-1 to 0-255 brightness
-        const brightness = Math.round(value * 255);
-        
-        // Set brightness
-        await apiClient.post('/json/state', { bri: brightness });
         
         return true;
       } catch (error) {
@@ -148,36 +134,11 @@ class WLEDDevice extends Homey.Device {
     // Color capabilities
     this.registerMultipleCapabilityListener(['light_hue', 'light_saturation'], async (valueObj) => {
       try {
-        const settings = this.getSettings();
-        const ipAddress = settings.ip || settings.address;
-        
-        if (!ipAddress) {
-          throw new Error('No IP address configured');
-        }
-        
-        // Create fresh client for this request
-        const apiClient = axios.create({
-          baseURL: `http://${ipAddress}`,
-          timeout: 5000,
-        });
-        
         // Get current values if not changed
-        const hue = valueObj.light_hue !== undefined ? valueObj.light_hue : await this.getCapabilityValue('light_hue');
-        const saturation = valueObj.light_saturation !== undefined ? valueObj.light_saturation : await this.getCapabilityValue('light_saturation');
+        const hue = valueObj.light_hue !== undefined ? valueObj.light_hue : this.getCapabilityValue('light_hue');
+        const saturation = valueObj.light_saturation !== undefined ? valueObj.light_saturation : this.getCapabilityValue('light_saturation');
         
-        // Convert HSV to RGB
-        const rgb = this._hsvToRgb(hue, saturation, 1);
-        
-        // Set color for first segment
-        await apiClient.post('/json/state', {
-          seg: [
-            {
-              col: [
-                [rgb.r, rgb.g, rgb.b]
-              ]
-            }
-          ]
-        });
+        await this._applyColor(hue || 0, saturation || 0);
         
         return true;
       } catch (error) {
@@ -189,35 +150,7 @@ class WLEDDevice extends Homey.Device {
     // Color temperature capability
     this.registerCapabilityListener('light_temperature', async (value) => {
       try {
-        const settings = this.getSettings();
-        const ipAddress = settings.ip || settings.address;
-        
-        if (!ipAddress) {
-          throw new Error('No IP address configured');
-        }
-        
-        // Create fresh client for this request
-        const apiClient = axios.create({
-          baseURL: `http://${ipAddress}`,
-          timeout: 5000,
-        });
-        
-        // Convert 0-1 to WLED color temperature range (0-255)
-        // 0 = warm (~2700K, cct=0), 1 = cold (~6500K, cct=255)
-        const colorTemp = Math.round(value * 255);
-        
-        // Set color temperature for first segment
-        // Note: For RGB strips, set to white first for CCT simulation to work
-        await apiClient.post('/json/state', { 
-          seg: [
-            {
-              col: [
-                [255, 255, 255]  // Set to white first for CCT simulation
-              ],
-              cct: colorTemp
-            }
-          ]
-        });
+        await this._applyTemperature(value);
         
         return true;
       } catch (error) {
@@ -226,143 +159,56 @@ class WLEDDevice extends Homey.Device {
       }
     });
     
-    // Effect capability
-    this.registerCapabilityListener('wled_effect', async (value) => {
+    // Light mode capability - re-applies whichever of the two the user switched to
+    this.registerCapabilityListener('light_mode', async (value) => {
       try {
-        const settings = this.getSettings();
-        const ipAddress = settings.ip || settings.address;
-        
-        if (!ipAddress) {
-          this.error('No IP address configured for effect setting');
-          return false;
+        if (value === 'temperature') {
+          const temperature = this.getCapabilityValue('light_temperature');
+          await this._applyTemperature(temperature === null ? 0.5 : temperature);
+        } else {
+          await this._applyColor(
+            this.getCapabilityValue('light_hue') || 0,
+            this.getCapabilityValue('light_saturation') || 0
+          );
         }
-        
-        // Create fresh client for this request
-        const apiClient = axios.create({
-          baseURL: `http://${ipAddress}`,
-          timeout: 5000,
-        });
-        
-        // Convert string ID to number
-        const effectId = parseInt(value, 10);
-        
-        // Check if effect ID is valid
-        if (isNaN(effectId) || effectId < 0 || effectId > this.maxEffectId) {
-          this.error(`Invalid effect ID: ${value}`);
-          return false;
-        }
-        
-        // Set effect for first segment - use effectId directly as WLED uses 0-based indexing
-        await apiClient.post('/json/state', {
-          seg: [
-            {
-              fx: effectId
-            }
-          ]
-        });
         
         return true;
       } catch (error) {
+        this.error(`Error setting light mode: ${error.message}`);
+        throw error;
+      }
+    });
+    
+    // Effect capability
+    this.registerCapabilityListener('wled_effect', async (value) => {
+      try {
+        await this._applyEffect(value);
+        
+        return true;
+      } catch (error) {
+        // Rethrow instead of returning false, otherwise the failure is silently
+        // swallowed and the UI looks like the change went through
         this.error(`Error setting effect: ${error.message}`);
-        return false;
+        throw error;
       }
     });
     
     // Palette capability
     this.registerCapabilityListener('wled_palette', async (value) => {
       try {
-        const settings = this.getSettings();
-        const ipAddress = settings.ip || settings.address;
-        
-        if (!ipAddress) {
-          this.error('No IP address configured for palette setting');
-          return false;
-        }
-        
-        // Create fresh client for this request
-        const apiClient = axios.create({
-          baseURL: `http://${ipAddress}`,
-          timeout: 5000,
-        });
-        
-        // Convert string ID to number
-        const paletteId = parseInt(value, 10);
-        
-        // Check if palette ID is valid
-        if (isNaN(paletteId) || paletteId < 0 || paletteId > this.maxPaletteId) {
-          this.error(`Invalid palette ID: ${value}`);
-          return false;
-        }
-        
-        // Set palette for first segment - use paletteId directly as WLED uses 0-based indexing
-        await apiClient.post('/json/state', {
-          seg: [
-            {
-              pal: paletteId
-            }
-          ]
-        });
+        await this._applyPalette(value);
         
         return true;
       } catch (error) {
         this.error(`Error setting palette: ${error.message}`);
-        return false;
+        throw error;
       }
     });
 
     // Preset capability
     this.registerCapabilityListener('wled_preset', async (value) => {
       try {
-        const settings = this.getSettings();
-        const ipAddress = settings.ip || settings.address;
-        
-        if (!ipAddress) {
-          this.error('No IP address configured for preset setting');
-          throw new Error('No IP address configured');
-        }
-        
-        // Create fresh client for this request
-        const apiClient = axios.create({
-          baseURL: `http://${ipAddress}`,
-          timeout: 5000,
-        });
-        
-        // Convert string ID to number
-        const presetId = parseInt(value, 10);
-        
-        // Validate preset ID
-        if (isNaN(presetId)) {
-          this.error(`Invalid preset ID: ${value}`);
-          throw new Error(`Invalid preset ID: ${value}`);
-        }
-        
-        // Special case: -1 means no preset (turn off preset)
-        if (presetId === -1) {
-          await apiClient.post('/json/state', { ps: -1 });
-          return true;
-        }
-        
-        // For positive preset IDs, validate they exist
-        if (presetId > 0) {
-          // Check if we have preset options and validate against them
-          try {
-            const presetOptions = await this.getCapabilityOptions('wled_preset');
-            const validPresetIds = presetOptions.values.map(p => parseInt(p.id, 10));
-            
-            if (!validPresetIds.includes(presetId)) {
-              this.error(`Preset ID ${presetId} not found in available presets: ${validPresetIds.join(', ')}`);
-              throw new Error(`Preset ${presetId} does not exist on this device`);
-            }
-          } catch (optionsError) {
-            this.log(`Could not validate preset options, proceeding anyway: ${optionsError.message}`);
-          }
-          
-          // Send the preset ID to WLED
-          await apiClient.post('/json/state', { ps: presetId });
-        } else {
-          this.error(`Invalid preset ID: ${presetId}. Must be -1 (no preset) or > 0`);
-          throw new Error(`Invalid preset ID: ${presetId}`);
-        }
+        await this._applyPreset(value);
         
         return true;
       } catch (error) {
@@ -393,143 +239,303 @@ class WLEDDevice extends Homey.Device {
   
   // Set an effect by ID - called from flow card action
   async setEffect(effectId) {
-    try {
-      // Validate the effect ID
-      if (effectId === undefined || effectId === null) {
-        throw new Error('No effect ID provided');
-      }
-      
-      // Make the API call directly to WLED device
-      const settings = this.getSettings();
-      const ipAddress = settings.ip || settings.address;
-      
-      if (!ipAddress) {
-        this.error('No IP address configured for effect setting');
-        throw new Error('No IP address configured');
-      }
-      
-      // Create API client
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
-      // Convert to number and validate
-      const effectIdNum = parseInt(effectId, 10);
-      if (isNaN(effectIdNum) || effectIdNum < 0 || effectIdNum > this.maxEffectId) {
-        throw new Error(`Invalid effect ID: ${effectId}. Must be between 0 and ${this.maxEffectId}`);
-      }
-      
-      // Make the API call - set effect for first segment
-      await apiClient.post('/json/state', {
-        seg: [
-          {
-            fx: effectIdNum
-          }
-        ]
-      });
-      
-      // Update the capability value (this won't trigger the listener since we're setting it directly)
-      await this.setCapabilityValue('wled_effect', String(effectId));
-      
-      return true;
-    } catch (error) {
-      this.error(`Error setting effect via flow action: ${error.message}`);
-      throw error;
+    if (effectId === undefined || effectId === null) {
+      throw new Error('No effect ID provided');
     }
+    
+    await this._applyEffect(effectId);
+    await this.setCapabilityValue('wled_effect', String(effectId)).catch(this.error);
+    
+    return true;
   }
   
   // Set a palette by ID - called from flow card action
   async setPalette(paletteId) {
-    try {
-      // Validate the palette ID
-      if (paletteId === undefined || paletteId === null) {
-        throw new Error('No palette ID provided');
-      }
-      
-      // Make the API call directly to WLED device
-      const settings = this.getSettings();
-      const ipAddress = settings.ip || settings.address;
-      
-      if (!ipAddress) {
-        this.error('No IP address configured for palette setting');
-        throw new Error('No IP address configured');
-      }
-      
-      // Create API client
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
-      // Convert to number and validate
-      const paletteIdNum = parseInt(paletteId, 10);
-      if (isNaN(paletteIdNum) || paletteIdNum < 0 || paletteIdNum > this.maxPaletteId) {
-        throw new Error(`Invalid palette ID: ${paletteId}. Must be between 0 and ${this.maxPaletteId}`);
-      }
-      
-      // Make the API call - set palette for first segment
-      await apiClient.post('/json/state', {
-        seg: [
-          {
-            pal: paletteIdNum
-          }
-        ]
-      });
-      
-      // Update the capability value (this won't trigger the listener since we're setting it directly)
-      await this.setCapabilityValue('wled_palette', String(paletteId));
-      
-      return true;
-    } catch (error) {
-      this.error(`Error setting palette via flow action: ${error.message}`);
-      throw error;
+    if (paletteId === undefined || paletteId === null) {
+      throw new Error('No palette ID provided');
     }
+    
+    await this._applyPalette(paletteId);
+    await this.setCapabilityValue('wled_palette', String(paletteId)).catch(this.error);
+    
+    return true;
   }
   
   // Set a preset by ID - called from flow card action
   async setPreset(presetId) {
+    if (presetId === undefined || presetId === null) {
+      throw new Error('No preset ID provided');
+    }
+    
+    await this._applyPreset(presetId);
+    await this.setCapabilityValue('wled_preset', String(presetId)).catch(this.error);
+    
+    return true;
+  }
+  
+  // Apply an effect to the device, shared by the capability listener and the flow action
+  async _applyEffect(effectId) {
+    const id = parseInt(effectId, 10);
+    
+    if (isNaN(id) || id < 0 || id > this.maxEffectId) {
+      throw new Error(`Invalid effect ID: ${effectId}. Must be between 0 and ${this.maxEffectId}`);
+    }
+    
+    await this._applyToSegments({ fx: id });
+  }
+  
+  // Apply a palette to the device, shared by the capability listener and the flow action
+  async _applyPalette(paletteId) {
+    const id = parseInt(paletteId, 10);
+    
+    if (isNaN(id) || id < 0 || id > this.maxPaletteId) {
+      throw new Error(`Invalid palette ID: ${paletteId}. Must be between 0 and ${this.maxPaletteId}`);
+    }
+    
+    await this._applyToSegments({ pal: id });
+  }
+  
+  // Apply a preset to the device, shared by the capability listener and the flow action
+  async _applyPreset(presetId) {
+    const id = parseInt(presetId, 10);
+    
+    if (isNaN(id)) {
+      throw new Error(`Invalid preset ID: ${presetId}`);
+    }
+    
+    if (id !== -1) {
+      if (id < 1) {
+        throw new Error(`Invalid preset ID: ${id}. Must be -1 (no preset) or 1 and up`);
+      }
+      
+      // WLED silently ignores a preset that does not exist, which made flows
+      // look like they ran fine while nothing happened on the strip
+      const available = await this._getAvailablePresets();
+      
+      if (available.length === 0) {
+        throw new Error('This device has no presets saved. Create one in the WLED interface first.');
+      }
+      
+      if (!available.some(preset => preset.id === String(id))) {
+        throw new Error(`Preset ${id} does not exist on this device. Available presets: ${available.map(preset => preset.id).join(', ')}`);
+      }
+    }
+    
+    await this._post('/json/state', { ps: id });
+  }
+  
+  // List the segments defined on the device, for the segment flow cards
+  async getSegmentsList(query = '') {
     try {
-      // Validate the preset ID
-      if (presetId === undefined || presetId === null) {
-        throw new Error('No preset ID provided');
-      }
+      const state = await this._get('/json/state');
+      const segments = Array.isArray(state && state.seg) ? state.seg : [];
       
-      // Get current value to see if it's changing
-      const currentValue = this.getCapabilityValue('wled_preset');
-      
-      // Make the API call directly to WLED device
-      const settings = this.getSettings();
-      const ipAddress = settings.ip || settings.address;
-      
-      if (!ipAddress) {
-        this.error('No IP address configured for preset setting');
-        throw new Error('No IP address configured');
-      }
-      
-      // Create API client
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
+      const list = segments.map((segment, index) => {
+        const id = segment && segment.id !== undefined ? segment.id : index;
+        const name = String((segment && segment.n) || '').trim();
+        const range = segment && segment.stop > segment.start
+          ? `LED ${segment.start}-${segment.stop - 1}`
+          : 'empty';
+        
+        return {
+          id: String(id),
+          name: `${name || `Segment ${id}`} (${range})`
+        };
       });
       
-      // Convert to number and validate
-      const presetIdNum = parseInt(presetId, 10);
-      if (isNaN(presetIdNum)) {
-        throw new Error(`Invalid preset ID: ${presetId}`);
+      return this._filterByQuery(list, query);
+    } catch (error) {
+      this.error('Error getting segments list:', error);
+      return [];
+    }
+  }
+  
+  async setSegmentEffect(segmentId, effectId) {
+    const id = this._parseSegmentId(segmentId);
+    const effect = parseInt(effectId, 10);
+    
+    if (isNaN(effect) || effect < 0 || effect > this.maxEffectId) {
+      throw new Error(`Invalid effect ID: ${effectId}. Must be between 0 and ${this.maxEffectId}`);
+    }
+    
+    await this._post('/json/state', { seg: [{ id, fx: effect }] });
+    
+    return true;
+  }
+  
+  async setSegmentPalette(segmentId, paletteId) {
+    const id = this._parseSegmentId(segmentId);
+    const palette = parseInt(paletteId, 10);
+    
+    if (isNaN(palette) || palette < 0 || palette > this.maxPaletteId) {
+      throw new Error(`Invalid palette ID: ${paletteId}. Must be between 0 and ${this.maxPaletteId}`);
+    }
+    
+    await this._post('/json/state', { seg: [{ id, pal: palette }] });
+    
+    return true;
+  }
+  
+  async setSegmentColor(segmentId, color) {
+    const id = this._parseSegmentId(segmentId);
+    const rgb = this._parseColor(color);
+    const lightCapabilities = await this._getLightCapabilities();
+    
+    const col = (lightCapabilities & 2)
+      ? [rgb.r, rgb.g, rgb.b, 0]
+      : [rgb.r, rgb.g, rgb.b];
+    
+    await this._post('/json/state', { seg: [{ id, col: [col] }] });
+    
+    return true;
+  }
+  
+  async setSegmentBrightness(segmentId, value) {
+    const id = this._parseSegmentId(segmentId);
+    const brightness = Math.round(Math.max(0, Math.min(1, value)) * 255);
+    
+    await this._post('/json/state', { seg: [{ id, bri: brightness, on: brightness > 0 }] });
+    
+    return true;
+  }
+  
+  async setSegmentPower(segmentId, on) {
+    const id = this._parseSegmentId(segmentId);
+    
+    await this._post('/json/state', { seg: [{ id, on: !!on }] });
+    
+    // The set of active segments just changed
+    this._segmentIds = null;
+    
+    return true;
+  }
+  
+  // Step to the next or previous preset saved on the device, wrapping around
+  async cyclePreset(direction = 1) {
+    const presets = await this._getAvailablePresets(true);
+    
+    if (presets.length === 0) {
+      throw new Error('This device has no presets saved. Create one in the WLED interface first.');
+    }
+    
+    const current = String(this.getCapabilityValue('wled_preset'));
+    const currentIndex = presets.findIndex(preset => preset.id === current);
+    
+    // With no preset active, stepping forward starts at the first preset and
+    // stepping backward starts at the last
+    const nextIndex = currentIndex === -1
+      ? (direction > 0 ? 0 : presets.length - 1)
+      : (currentIndex + direction + presets.length) % presets.length;
+    
+    const next = presets[nextIndex];
+    
+    await this._applyPreset(next.id);
+    await this.setCapabilityValue('wled_preset', next.id).catch(this.error);
+    
+    return next;
+  }
+  
+  // Set a capability value and fire the matching trigger when it actually
+  // changed, so flows also react to changes made in the WLED interface itself
+  async _setAndTrigger(capability, value, triggerId, tokenName) {
+    const previous = this.getCapabilityValue(capability);
+    
+    await this.setCapabilityValue(capability, value).catch(this.error);
+    
+    // Don't fire on the very first reading after a restart
+    if (previous === null || previous === undefined || previous === value) {
+      return;
+    }
+    
+    try {
+      const label = await this._getOptionTitle(capability, value);
+      
+      await this.homey.flow.getDeviceTriggerCard(triggerId).trigger(this, {
+        [tokenName]: label,
+        [`${tokenName}_id`]: parseInt(value, 10)
+      });
+    } catch (error) {
+      this.error(`Could not fire trigger ${triggerId}: ${error.message}`);
+    }
+  }
+  
+  // Human readable name for a capability option id
+  async _getOptionTitle(capability, id) {
+    try {
+      const options = await this.getCapabilityOptions(capability);
+      const match = options && options.values
+        ? options.values.find(option => option.id === String(id))
+        : null;
+      
+      if (match) {
+        if (match.title && typeof match.title === 'object') {
+          return match.title.en || String(id);
+        }
+        
+        return match.title || match.name || String(id);
+      }
+    } catch (error) {
+      // Fall through to the raw id
+    }
+    
+    return String(id);
+  }
+  
+  _parseSegmentId(segmentId) {
+    const id = parseInt(segmentId, 10);
+    
+    if (isNaN(id) || id < 0) {
+      throw new Error(`Invalid segment: ${segmentId}`);
+    }
+    
+    return id;
+  }
+  
+  // Homey's color flow argument arrives as a hex string, but accept an
+  // {r,g,b} object and an {hue,saturation} pair too
+  _parseColor(color) {
+    if (typeof color === 'string') {
+      const hex = color.replace('#', '').trim();
+      
+      if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+        return {
+          r: parseInt(hex.substring(0, 2), 16),
+          g: parseInt(hex.substring(2, 4), 16),
+          b: parseInt(hex.substring(4, 6), 16)
+        };
       }
       
-      // Make the API call
-      await apiClient.post('/json/state', { ps: presetIdNum });
-      
-      // Update the capability value (this won't trigger the listener since we're setting it directly)
-      await this.setCapabilityValue('wled_preset', String(presetId));
-      
-      return true;
-    } catch (error) {
-      this.error(`Error setting preset via flow action: ${error.message}`);
-      throw error;
+      // Some Homey versions hand over a 0-1 hue as a numeric string
+      const hue = parseFloat(hex);
+      if (!isNaN(hue)) {
+        return this._hsvToRgb(Math.max(0, Math.min(1, hue)), 1, 1);
+      }
     }
+    
+    if (color && typeof color === 'object') {
+      if (color.r !== undefined) {
+        return { r: color.r, g: color.g, b: color.b };
+      }
+      
+      if (color.hue !== undefined) {
+        return this._hsvToRgb(color.hue, color.saturation === undefined ? 1 : color.saturation, 1);
+      }
+    }
+    
+    if (typeof color === 'number') {
+      return this._hsvToRgb(Math.max(0, Math.min(1, color)), 1, 1);
+    }
+    
+    throw new Error(`Could not read the color value: ${JSON.stringify(color)}`);
+  }
+  
+  _filterByQuery(list, query) {
+    if (!query) {
+      return list;
+    }
+    
+    const lcQuery = String(query).toLowerCase();
+    return list.filter(item => item.name.toLowerCase().includes(lcQuery));
   }
   
   async getEffectsList(query = '') {
@@ -626,11 +632,7 @@ class WLEDDevice extends Homey.Device {
     } catch (error) {
       this.error('Error getting presets list:', error);
       
-      // Create options from default presets
-      return this._getDefaultPresets().map((name, id) => ({
-        id: String(id),
-        name: name
-      }));
+      return [{ id: '-1', name: 'No Preset' }];
     }
   }
   
@@ -678,14 +680,8 @@ class WLEDDevice extends Homey.Device {
         return;
       }
       
-      // Create a fresh API client for this request
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
       // Get state from WLED API
-      const response = await apiClient.get('/json/state');
+      const response = { data: await this._get('/json/state') };
       
       if (!response || !response.data) {
         this.error('Invalid response from WLED API');
@@ -702,6 +698,9 @@ class WLEDDevice extends Homey.Device {
       
       const state = response.data;
       
+      // Refresh the segment cache for free while we already have the state
+      this._cacheSegmentIds(state);
+      
       // Update device capabilities
       await this.setCapabilityValue('onoff', !!state.on).catch(this.error);
       
@@ -712,10 +711,27 @@ class WLEDDevice extends Homey.Device {
       if (state.seg && state.seg[0]) {
         const segment = state.seg[0];
         
-        // Color values
-        if (segment.col && segment.col[0]) {
-          const rgb = segment.col[0];
-          const hsv = this._rgbToHsv(rgb[0], rgb[1], rgb[2]);
+        // Determine whether the light is currently showing a color or white.
+        // WLED reports white as RGB 0 with a non-zero white channel; on strips
+        // without CCT hardware we emulate white on the RGB channels, so compare
+        // against the last emulated white point as well.
+        const col = segment.col && segment.col[0] ? segment.col[0] : null;
+        const isWhite = !!col && (
+          (col[0] === 0 && col[1] === 0 && col[2] === 0 && (col[3] || 0) > 0) ||
+          (!!this._emulatedWhiteRgb &&
+            col[0] === this._emulatedWhiteRgb.r &&
+            col[1] === this._emulatedWhiteRgb.g &&
+            col[2] === this._emulatedWhiteRgb.b)
+        );
+        
+        if (this.hasCapability('light_mode')) {
+          await this.setCapabilityValue('light_mode', isWhite ? 'temperature' : 'color').catch(this.error);
+        }
+        
+        // Color values - skipped while the light is white, otherwise the white
+        // color would reset hue and saturation on every poll
+        if (col && !isWhite) {
+          const hsv = this._rgbToHsv(col[0], col[1], col[2]);
           
           await this.setCapabilityValue('light_hue', hsv.h).catch(this.error);
           await this.setCapabilityValue('light_saturation', hsv.s).catch(this.error);
@@ -726,7 +742,7 @@ class WLEDDevice extends Homey.Device {
           if (segment.fx < 0 || segment.fx > this.maxEffectId) {
             this.log(`Effect ID ${segment.fx} out of range (max: ${this.maxEffectId})`);
           } else {
-            await this.setCapabilityValue('wled_effect', String(segment.fx)).catch(this.error);
+            await this._setAndTrigger('wled_effect', String(segment.fx), 'effect_changed', 'effect');
           }
         }
         
@@ -735,43 +751,44 @@ class WLEDDevice extends Homey.Device {
           if (segment.pal < 0 || segment.pal > this.maxPaletteId) {
             this.log(`Palette ID ${segment.pal} out of range (max: ${this.maxPaletteId})`);
           } else {
-            await this.setCapabilityValue('wled_palette', String(segment.pal)).catch(this.error);
+            await this._setAndTrigger('wled_palette', String(segment.pal), 'palette_changed', 'palette');
           }
         }
       }
       
-      // Color temperature capability
+      // Color temperature capability. WLED's cct runs from 0 (warmest) to 255
+      // (coldest) while Homey's light_temperature runs from 0 (coldest) to 1
+      // (warmest), so the value has to be inverted.
+      // Only hardware with real CCT channels reports a meaningful cct - on other
+      // strips WLED keeps reporting its default and would overwrite the value
+      // the user just set.
       if (this.hasCapability('light_temperature') && state.seg && state.seg[0] && state.seg[0].cct !== undefined) {
-        // Convert WLED color temperature range (0-255) to 0-1
-        // 0 = warm (~2700K, value=0), 255 = cold (~6500K, value=1)
-        const tempValue = state.seg[0].cct / 255;
-        await this.setCapabilityValue('light_temperature', Math.max(0, Math.min(1, tempValue))).catch(this.error);
+        const lightCapabilities = await this._getLightCapabilities();
+        
+        if (lightCapabilities & 4) {
+          const tempValue = 1 - (state.seg[0].cct / 255);
+          await this.setCapabilityValue('light_temperature', Math.max(0, Math.min(1, tempValue))).catch(this.error);
+        }
       }
       
-      // Preset - handle the preset ID correctly
+      // Preset. WLED reports 0 when no preset is active, Homey uses -1 for that.
       if (state.ps !== undefined) {
         try {
-          const presetId = String(state.ps);
+          const presetId = parseInt(state.ps, 10) > 0 ? String(state.ps) : '-1';
           
-          // Check if we have this preset in our capability options
-          const presetOptions = await this.getCapabilityOptions('wled_preset');
+          let options = await this.getCapabilityOptions('wled_preset');
+          let known = !!options && !!options.values && options.values.some(option => option.id === presetId);
           
-          // Ensure we have the preset ID in our options
-          if (presetOptions && presetOptions.values) {
-            const hasPresetId = presetOptions.values.some(option => option.id === presetId);
+          // A preset was added on the device that we don't know about yet
+          if (!known && presetId !== '-1') {
+            await this._updatePresetsCapability(await this._getAvailablePresets(true));
             
-            if (!hasPresetId && parseInt(presetId) > 0) {
-              // We need to add this preset ID to our options
-              await this.fetchEffectsAndPalettes();
-            } else {
-              // It's a known preset ID, just set it
-              await this.setCapabilityValue('wled_preset', presetId).catch(error => {
-                this.error(`Error setting preset value: ${error.message}`);
-              });
-            }
-          } else {
-            // No options yet, force a fetch
-            await this.fetchEffectsAndPalettes();
+            options = await this.getCapabilityOptions('wled_preset');
+            known = !!options && !!options.values && options.values.some(option => option.id === presetId);
+          }
+          
+          if (known) {
+            await this._setAndTrigger('wled_preset', presetId, 'preset_changed', 'preset');
           }
         } catch (presetError) {
           this.error(`Error handling preset state: ${presetError.message}`);
@@ -833,15 +850,13 @@ class WLEDDevice extends Homey.Device {
         return false;
       }
       
-      // Create a fresh API client for this request
-      const apiClient = axios.create({
-        baseURL: `http://${ipAddress}`,
-        timeout: 5000,
-      });
-      
       // First get effects and palettes
-      const response = await apiClient.get('/json');
-      const data = response.data;
+      const data = await this._get('/json');
+      
+      // /json also carries the device info, so refresh the light capabilities here
+      if (data && data.info) {
+        this._storeLightCapabilities(data.info);
+      }
       
       // Handle effects
       if (data && data.effects && Array.isArray(data.effects)) {
@@ -866,50 +881,7 @@ class WLEDDevice extends Homey.Device {
       }
       
       // Now fetch presets separately
-      try {
-        const presetsResponse = await apiClient.get('/presets.json');
-        const presets = presetsResponse.data;
-        
-        if (presets) {
-          // Filter out non-preset entries and convert to array format
-          const presetArray = Object.entries(presets)
-            .filter(([id, preset]) => {
-              // Filter out metadata entries and ensure preset has required data
-              const isValid = preset && 
-                     typeof preset === 'object' &&
-                     Object.keys(preset).length > 0 && // Has some content
-                     !id.startsWith('_') && // Not a metadata entry
-                     parseInt(id) > 0; // Valid preset ID (greater than 0)
-              
-              return isValid;
-            })
-            .map(([id, preset]) => {
-              // Use preset name from 'n' property, or fallback to a default name
-              let presetName = preset.n || preset.name || `Preset ${id}`;
-              
-              // If name is empty string, use default
-              if (!presetName || presetName.trim() === '') {
-                presetName = `Preset ${id}`;
-              }
-              
-              return {
-                id: String(id),
-                name: presetName
-              };
-            });
-          
-          // Update the maximum preset ID based on actual presets
-          this.maxPresetId = Math.max(...presetArray.map(p => parseInt(p.id, 10)), 0);
-          
-          // Update device capability options
-          await this._updatePresetsCapability(presetArray);
-        } else {
-          await this._updatePresetsCapability([]);
-        }
-      } catch (presetError) {
-        this.error('Error fetching presets:', presetError.message);
-        await this._updatePresetsCapability([]);
-      }
+      await this._updatePresetsCapability(await this._getAvailablePresets(true));
       
       // Update device settings with the new counts
       const updatedSettings = {};
@@ -924,14 +896,18 @@ class WLEDDevice extends Homey.Device {
         settingsChanged = true;
       }
       
-      // Update effect and palette counts if they're different
-      if (data.fxcount && settings.fxcount !== data.fxcount) {
-        updatedSettings.fxcount = data.fxcount;
+      // Update effect and palette counts if they're different.
+      // /json nests these under info - reading them off the root meant the
+      // counts were never actually stored.
+      const info = (data && data.info) || {};
+      
+      if (info.fxcount && settings.fxcount !== info.fxcount) {
+        updatedSettings.fxcount = info.fxcount;
         settingsChanged = true;
       }
       
-      if (data.palcount && settings.palcount !== data.palcount) {
-        updatedSettings.palcount = data.palcount;
+      if (info.palcount && settings.palcount !== info.palcount) {
+        updatedSettings.palcount = info.palcount;
         settingsChanged = true;
       }
       
@@ -1020,55 +996,28 @@ class WLEDDevice extends Homey.Device {
   
   async _updatePresetsCapability(presets) {
     try {
-      // Ensure we always have the "No Preset" option
-      const defaultPreset = {
-        id: "-1", // WLED uses -1 for no preset
-        name: "No Preset"
-      };
-
-      // Convert to format expected by capability options
-      let presetOptions = [defaultPreset];
+      // "No preset" is always available - WLED uses -1 to clear the active preset
+      const presetOptions = [{ id: '-1', title: { en: 'No Preset' } }];
       
-      // Add all the actual presets from the device
+      // Only presets that actually exist on the device. Padding the list with
+      // placeholder presets 1-10 used to make flows silently do nothing when the
+      // chosen preset was never saved on the device.
       presets.forEach(preset => {
         presetOptions.push({
-          id: preset.id,
-          name: preset.name || `Preset ${preset.id}`
+          id: String(preset.id),
+          title: { en: preset.name || `Preset ${preset.id}` }
         });
       });
       
-      // Make sure we have at least the first 10 preset IDs for default
-      for (let i = 1; i <= 10; i++) {
-        const idStr = String(i);
-        if (!presetOptions.some(p => p.id === idStr)) {
-          presetOptions.push({
-            id: idStr,
-            name: `Preset ${i}`
-          });
-        }
-      }
-      
-      // Convert to capability options format
-      presetOptions = presetOptions.map(preset => ({
-        id: preset.id,
-        title: {
-          en: preset.name
-        }
-      }));
-      
-      // Sort presets by ID numerically, keeping "No Preset" at the top
-      presetOptions.sort((a, b) => {
-        // Keep "No Preset" at the top
-        if (a.id === "-1") return -1;
-        if (b.id === "-1") return 1;
-        // Sort others by ID numerically
-        return parseInt(a.id) - parseInt(b.id);
-      });
-      
-      // Update the capability options
       await this.setCapabilityOptions('wled_preset', {
         values: presetOptions
       }).catch(err => this.error(`Failed to set preset options: ${err.message}`));
+      
+      // A preset that no longer exists must not stay selected
+      const current = this.getCapabilityValue('wled_preset');
+      if (current && !presetOptions.some(option => option.id === current)) {
+        await this.setCapabilityValue('wled_preset', '-1').catch(this.error);
+      }
       
       return true;
     } catch (error) {
@@ -1102,16 +1051,257 @@ class WLEDDevice extends Homey.Device {
     ];
   }
   
-  // Default presets to use if API doesn't provide them
-  _getDefaultPresets() {
-    return [
-      'No Preset',
-      'Preset 1',
-      'Preset 2',
-      'Preset 3',
-      'Preset 4',
-      'Preset 5'
-    ];
+  // Single place where the HTTP client is built, so address and timeout stay
+  // consistent across every call
+  _getApiClient(timeout = 5000) {
+    const settings = this.getSettings();
+    const ipAddress = settings.ip || settings.address;
+    
+    if (!ipAddress) {
+      throw new Error('No IP address configured');
+    }
+    
+    return axios.create({
+      baseURL: `http://${ipAddress}`,
+      timeout,
+    });
+  }
+  
+  async _get(path) {
+    const response = await this._getApiClient().get(path);
+    return response.data;
+  }
+  
+  async _post(path, data) {
+    const response = await this._getApiClient().post(path, data);
+    return response.data;
+  }
+  
+  // Apply a set of segment properties to every active segment.
+  // WLED applies a segment object only to the segment it addresses, so writing
+  // just seg[0] left every other segment on a multi-segment strip untouched.
+  async _applyToSegments(props) {
+    const segmentIds = await this._getActiveSegmentIds();
+    
+    return this._post('/json/state', {
+      seg: segmentIds.map(id => Object.assign({ id }, props))
+    });
+  }
+  
+  // Ids of the segments that are enabled and actually cover LEDs
+  async _getActiveSegmentIds() {
+    const now = Date.now();
+    
+    // Cached briefly, otherwise every colour change costs an extra round trip
+    if (this._segmentIds && (now - this._segmentIdsUpdatedAt) < 30000) {
+      return this._segmentIds;
+    }
+    
+    try {
+      return this._cacheSegmentIds(await this._get('/json/state'));
+    } catch (error) {
+      this.error(`Could not read segments, falling back to segment 0: ${error.message}`);
+      return [0];
+    }
+  }
+  
+  // Pick the active segment ids out of a /json/state payload and cache them
+  _cacheSegmentIds(state) {
+    let ids = [];
+    
+    if (state && Array.isArray(state.seg)) {
+      ids = state.seg
+        .map((segment, index) => ({
+          segment,
+          id: segment && segment.id !== undefined ? segment.id : index
+        }))
+        .filter(({ segment }) => segment && segment.stop > segment.start && segment.on !== false)
+        .map(({ id }) => id);
+    }
+    
+    if (ids.length === 0) {
+      ids = [0];
+    }
+    
+    this._segmentIds = ids;
+    this._segmentIdsUpdatedAt = Date.now();
+    
+    return ids;
+  }
+  
+  // Read the presets that actually exist on the device
+  async _getAvailablePresets(forceRefresh = false) {
+    const now = Date.now();
+    
+    if (!forceRefresh && this._presets && (now - this._presetsUpdatedAt) < 60000) {
+      return this._presets;
+    }
+    
+    try {
+      const presets = this._parsePresets(await this._get('/presets.json'));
+      
+      this._presets = presets;
+      this._presetsUpdatedAt = now;
+      
+      return presets;
+    } catch (error) {
+      this.error(`Could not read presets: ${error.message}`);
+      return this._presets || [];
+    }
+  }
+  
+  // presets.json is keyed by preset id and holds empty objects for unused slots
+  _parsePresets(presets) {
+    if (!presets || typeof presets !== 'object') {
+      return [];
+    }
+    
+    return Object.entries(presets)
+      .filter(([id, preset]) => preset
+        && typeof preset === 'object'
+        && Object.keys(preset).length > 0
+        && !id.startsWith('_')
+        && parseInt(id, 10) > 0)
+      .map(([id, preset]) => {
+        const name = String(preset.n || preset.name || '').trim();
+        
+        return {
+          id: String(id),
+          name: name || `Preset ${id}`
+        };
+      })
+      .sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
+  }
+  
+  // Apply a hue/saturation pair to the device
+  async _applyColor(hue, saturation) {
+    const rgb = this._hsvToRgb(hue, saturation, 1);
+    const lightCapabilities = await this._getLightCapabilities();
+    
+    // Explicitly clear the white channel, otherwise the color stays washed out
+    // after the light has been in temperature mode
+    const col = (lightCapabilities & 2)
+      ? [rgb.r, rgb.g, rgb.b, 0]
+      : [rgb.r, rgb.g, rgb.b];
+    
+    this._emulatedWhiteRgb = null;
+    
+    await this._applyToSegments({ col: [col] });
+    
+    if (this.hasCapability('light_mode')) {
+      await this.setCapabilityValue('light_mode', 'color').catch(this.error);
+    }
+  }
+  
+  // Apply a Homey light_temperature value to the device.
+  // Homey runs from 0 (coldest) to 1 (warmest), WLED's cct is the other way
+  // around, so the value is inverted here.
+  async _applyTemperature(value) {
+    const cct = Math.round((1 - value) * 255);
+    const lightCapabilities = await this._getLightCapabilities();
+    
+    let col;
+    
+    if ((lightCapabilities & 4) || lightCapabilities === 2) {
+      // Real white/CCT channels. The RGB channels have to be off and the white
+      // channel has to be non-zero - with a white channel of 0 the CCT channels
+      // stay dark and all that is visible is harsh RGB white, which is why the
+      // light used to look cold no matter which temperature was selected.
+      col = [0, 0, 0, 255];
+      this._emulatedWhiteRgb = null;
+    } else {
+      // No CCT hardware. seg.cct has no physical effect on these strips, so the
+      // white point is emulated on the RGB channels instead.
+      const rgb = this._kelvinToRgb(this._temperatureToKelvin(value));
+      col = (lightCapabilities & 2)
+        ? [rgb.r, rgb.g, rgb.b, 0]
+        : [rgb.r, rgb.g, rgb.b];
+      this._emulatedWhiteRgb = rgb;
+    }
+    
+    await this._applyToSegments({ col: [col], cct });
+    
+    if (this.hasCapability('light_mode')) {
+      await this.setCapabilityValue('light_mode', 'temperature').catch(this.error);
+    }
+  }
+  
+  // WLED light capability bitmask: 1 = RGB, 2 = white channel, 4 = CCT
+  async _getLightCapabilities() {
+    if (typeof this._lightCapabilities === 'number') {
+      return this._lightCapabilities;
+    }
+    
+    const stored = this.getStoreValue('lightCapabilities');
+    if (typeof stored === 'number') {
+      this._lightCapabilities = stored;
+      return stored;
+    }
+    
+    try {
+      return this._storeLightCapabilities(await this._get('/json/info'));
+    } catch (error) {
+      this.error(`Could not determine light capabilities: ${error.message}`);
+      return 1; // Assume a plain RGB strip
+    }
+  }
+  
+  // Read the light capability bitmask out of a /json/info payload
+  _storeLightCapabilities(info) {
+    const leds = info && info.leds ? info.leds : {};
+    
+    // seglc is per segment and more accurate than the global lc
+    let lightCapabilities;
+    if (Array.isArray(leds.seglc) && leds.seglc.length > 0) {
+      lightCapabilities = leds.seglc[0];
+    } else if (typeof leds.lc === 'number') {
+      lightCapabilities = leds.lc;
+    }
+    
+    // Older firmware doesn't report lc, and 0 means the segment is inactive
+    if (typeof lightCapabilities !== 'number' || lightCapabilities === 0) {
+      lightCapabilities = leds.wv ? 3 : 1;
+    }
+    
+    if (this._lightCapabilities !== lightCapabilities) {
+      this.log(`WLED light capabilities: ${lightCapabilities} (RGB: ${!!(lightCapabilities & 1)}, white: ${!!(lightCapabilities & 2)}, CCT: ${!!(lightCapabilities & 4)})`);
+    }
+    
+    this._lightCapabilities = lightCapabilities;
+    this.setStoreValue('lightCapabilities', lightCapabilities).catch(this.error);
+    
+    return lightCapabilities;
+  }
+  
+  // Map a Homey light_temperature value (0 = coldest, 1 = warmest) to Kelvin
+  _temperatureToKelvin(value) {
+    const WARMEST = 2000;
+    const COLDEST = 6535;
+    
+    return Math.round(COLDEST - (value * (COLDEST - WARMEST)));
+  }
+  
+  // Approximate the RGB white point of a color temperature, used on strips that
+  // have no CCT channels of their own
+  _kelvinToRgb(kelvin) {
+    const temp = Math.max(1000, Math.min(40000, kelvin)) / 100;
+    let r;
+    let g;
+    let b;
+    
+    if (temp <= 66) {
+      r = 255;
+      g = (99.4708025861 * Math.log(temp)) - 161.1195681661;
+      b = temp <= 19 ? 0 : (138.5177312231 * Math.log(temp - 10)) - 305.0447927307;
+    } else {
+      r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+      g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+      b = 255;
+    }
+    
+    const clamp = (value) => Math.max(0, Math.min(255, Math.round(value)));
+    
+    return { r: clamp(r), g: clamp(g), b: clamp(b) };
   }
   
   // Convert RGB to HSV
@@ -1167,11 +1357,62 @@ class WLEDDevice extends Homey.Device {
     };
   }
   
-  // This matches the discovery result with the device
+  // This matches the discovery result with the device.
+  // Device ids are built from the MAC address (`wled-<mac>`) with an IP based
+  // fallback (`wled-<ip-with-dashes>`), so both forms have to be checked - the
+  // old check only ever built the IP form and therefore never matched a device
+  // that was paired with a MAC based id.
   onDiscoveryResult(discoveryResult) {
-    // Return true if this is your device
     const id = this.getData().id;
-    return id === `wled-${discoveryResult.id.replace(/\./g, '-')}`;
+    const candidates = [];
+    
+    const mac = discoveryResult.txt && discoveryResult.txt.mac;
+    if (mac) {
+      candidates.push(`wled-${String(mac).replace(/:/g, '').toLowerCase()}`);
+    }
+    
+    if (discoveryResult.address) {
+      candidates.push(`wled-${discoveryResult.address.replace(/\./g, '-')}`);
+    }
+    
+    if (discoveryResult.id) {
+      candidates.push(`wled-${String(discoveryResult.id).replace(/\./g, '-')}`);
+    }
+    
+    return candidates.includes(id);
+  }
+  
+  onDiscoveryAvailable(discoveryResult) {
+    this._updateAddressFromDiscovery(discoveryResult).catch(this.error);
+  }
+  
+  onDiscoveryAddressChanged(discoveryResult) {
+    this._updateAddressFromDiscovery(discoveryResult).catch(this.error);
+  }
+  
+  // Follow the device when DHCP hands it a new address, instead of leaving it
+  // unavailable until someone edits the IP by hand
+  async _updateAddressFromDiscovery(discoveryResult) {
+    const address = discoveryResult && discoveryResult.address;
+    
+    if (!address) {
+      return;
+    }
+    
+    const settings = this.getSettings();
+    if (settings.ip === address && settings.address === address) {
+      return;
+    }
+    
+    this.log(`Discovery reported a new address: ${address}`);
+    
+    await this.setSettings({ ip: address, address: address }).catch(this.error);
+    
+    // Anything cached belongs to the old connection
+    this._segmentIds = null;
+    this._presets = null;
+    
+    await this.updateDeviceState().catch(this.error);
   }
   
   async onDeleted() {
@@ -1201,18 +1442,19 @@ class WLEDDevice extends Homey.Device {
         // Use polling_interval if available, otherwise convert pollInterval from seconds to ms
         this.pollingInterval = newSettings.polling_interval || 
           (newSettings.pollInterval ? newSettings.pollInterval * 1000 : 5000);
+        
+        // scheduleNextPoll works off basePollingInterval, so without this the
+        // new interval was stored but never actually used
+        this.basePollingInterval = this.pollingInterval;
         this.log(`Polling interval updated to ${this.pollingInterval}ms`);
       }
       
-      // Update API client if IP changed
+      // Drop anything cached for the old connection if the IP changed
       if (changedKeys.includes('ip') || changedKeys.includes('address')) {
-        // Use ip if available, otherwise use address
-        const ipAddress = newSettings.ip || newSettings.address;
-        this.log(`IP address updated to ${ipAddress}`);
-        this.apiClient = axios.create({
-          baseURL: `http://${ipAddress}`,
-          timeout: 10000
-        });
+        this.log(`IP address updated to ${newSettings.ip || newSettings.address}`);
+        this._segmentIds = null;
+        this._presets = null;
+        this._lightCapabilities = undefined;
       }
       
       // Restart polling with new settings

@@ -63,33 +63,45 @@ Apply color palettes to effects to change their appearance without changing the 
 
 ## Flow Support
 
-This app adds several flow cards to Homey:
+### Actions
+
+**Whole device**
+- **Set Effect**, **Set Palette**, **Set Preset** - pick from what the device reports
+- **Next preset** / **Previous preset** - cycle through the presets saved on the device, wrapping around
+
+**Individual segments** - for strips split into several segments, these leave the other segments untouched
+- **Set effect on a segment**
+- **Set palette on a segment**
+- **Set color on a segment**
+- **Set brightness on a segment**
+- **Turn a segment on or off**
+
+On top of these, Homey generates the standard light actions from the device
+capabilities: turn on/off, set brightness, set color and set color temperature.
 
 ### Triggers
 
-- When a WLED device turns on/off
-- When brightness changes
-- When effect changes
+- **The effect changed**, **The palette changed**, **The preset changed** - each with the
+  name and the ID as tokens. These also fire when the change is made from the
+  WLED interface itself, not just from Homey.
 
 ### Conditions
 
-- Check if a WLED device is on/off
-- Check current effect
-- Check current brightness level
+- **The effect is / is not**
+- **The palette is / is not**
+- **The preset is / is not**
 
-### Actions
-
-- Turn on/off
-- Set brightness
-- Set color
-- Set effect
-- Set color palette
+Effects, palettes, presets and segments are all read from the device itself, so
+the lists always match the firmware you are running. Presets have to be saved in
+the WLED interface before they show up.
 
 ## Troubleshooting
 
 - **Device Not Discovered**: Make sure your WLED device is on the same network as your Homey
 - **Connection Issues**: Check that the IP address is correct and that your WLED device is online
 - **Effect Not Working**: Some effects may not be available depending on your WLED version
+- **Preset Does Nothing**: The preset has to exist on the device. Save it in the WLED interface first - only saved presets are offered in the flow card
+- **Color Temperature**: On strips without dedicated CCT channels the white point is approximated on the RGB channels, since WLED's `cct` only drives real CCT hardware
 - **Discovery Problems**: If discovery doesn't work consistently, try the manual IP entry method
 
 ## Support
@@ -107,6 +119,26 @@ This app adds several flow cards to Homey:
 This Homey app is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### 1.2.0
+
+Fixes:
+- Color temperature: warm no longer produced cold white. The white channel is now
+  driven correctly on RGB+CCT hardware, and strips without CCT channels emulate
+  the white point on RGB
+- Effects, palettes and colors now apply to every segment, not only the first
+- Presets that do not exist on the device are no longer offered
+- Failed actions report an error instead of silently doing nothing
+- Dimming in a flow also turns the light on
+- Devices follow their IP address when it changes
+
+New:
+- Flow cards for controlling individual segments
+- Next / previous preset flow cards
+- Triggers and conditions for effect, palette and preset
+
+### 1.1.0
+- Support for color temperature
 
 ### 1.0.0
 - Initial release
