@@ -13,5 +13,11 @@
   },
   "1.1.0": {
     "en": "Support for Light Temperature"
+  },
+  "1.2.0": {
+    "en": "Fixes: color temperature now works - warm no longer produces cold white. Effects, palettes and colors apply to every segment instead of only the first. Presets that are not saved on the device are no longer offered, and failed actions report an error instead of silently doing nothing. Dimming in a flow also turns the light on. Devices follow their IP address when it changes. New: flow cards for controlling individual segments (effect, palette, color, brightness, on/off), next/previous preset, and triggers and conditions for effect, palette and preset."
+  },
+  "1.3.0": {
+    "en": "Bugg fixes, Color Temp fixed, new requests from community"
   }
 }

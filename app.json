@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.svipler.app.wled",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "platforms": [
@@ -46,12 +46,280 @@
   "bugs": {
     "url": "https://community.homey.app/t/app-pro-wled-controller/133405"
   },
-  "source": "https://github.com/sviplercom.svipler.app.wled",
+  "source": "https://github.com/svipler/com.svipler.app.wled",
   "brandColor": "#ff0000",
   "brandName": "WLED",
   "homeyCommunityTopicId": 133405,
   "flow": {
+    "triggers": [
+      {
+        "id": "effect_changed",
+        "title": {
+          "en": "The effect changed"
+        },
+        "titleFormatted": {
+          "en": "The effect changed"
+        },
+        "hint": {
+          "en": "Triggers whenever the effect changes, also when it is changed from the WLED interface itself."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "effect",
+            "type": "string",
+            "title": {
+              "en": "Effect"
+            },
+            "example": {
+              "en": "Rainbow"
+            }
+          },
+          {
+            "name": "effect_id",
+            "type": "number",
+            "title": {
+              "en": "Effect ID"
+            },
+            "example": 9
+          }
+        ]
+      },
+      {
+        "id": "palette_changed",
+        "title": {
+          "en": "The palette changed"
+        },
+        "titleFormatted": {
+          "en": "The palette changed"
+        },
+        "hint": {
+          "en": "Triggers whenever the color palette changes, also when it is changed from the WLED interface itself."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "palette",
+            "type": "string",
+            "title": {
+              "en": "Palette"
+            },
+            "example": {
+              "en": "Party"
+            }
+          },
+          {
+            "name": "palette_id",
+            "type": "number",
+            "title": {
+              "en": "Palette ID"
+            },
+            "example": 6
+          }
+        ]
+      },
+      {
+        "id": "preset_changed",
+        "title": {
+          "en": "The preset changed"
+        },
+        "titleFormatted": {
+          "en": "The preset changed"
+        },
+        "hint": {
+          "en": "Triggers whenever a preset is activated, also when it is activated from the WLED interface itself."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "preset",
+            "type": "string",
+            "title": {
+              "en": "Preset"
+            },
+            "example": {
+              "en": "Movie"
+            }
+          },
+          {
+            "name": "preset_id",
+            "type": "number",
+            "title": {
+              "en": "Preset ID"
+            },
+            "example": 1
+          }
+        ]
+      }
+    ],
+    "conditions": [
+      {
+        "id": "effect_is",
+        "title": {
+          "en": "The effect !{{is|is not}}"
+        },
+        "titleFormatted": {
+          "en": "The effect !{{is|is not}} [[effect]]"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "effect",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Effect"
+            }
+          }
+        ]
+      },
+      {
+        "id": "palette_is",
+        "title": {
+          "en": "The palette !{{is|is not}}"
+        },
+        "titleFormatted": {
+          "en": "The palette !{{is|is not}} [[palette]]"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "palette",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Palette"
+            }
+          }
+        ]
+      },
+      {
+        "id": "preset_is",
+        "title": {
+          "en": "The preset !{{is|is not}}"
+        },
+        "titleFormatted": {
+          "en": "The preset !{{is|is not}} [[preset]]"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "preset",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Preset"
+            }
+          }
+        ]
+      }
+    ],
     "actions": [
+      {
+        "id": "next_preset",
+        "title": {
+          "en": "Next preset"
+        },
+        "titleFormatted": {
+          "en": "Switch to the next preset"
+        },
+        "hint": {
+          "en": "Cycles forward through the presets saved on the device and wraps around at the end."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "preset",
+            "type": "string",
+            "title": {
+              "en": "Preset"
+            },
+            "example": {
+              "en": "Movie"
+            }
+          },
+          {
+            "name": "preset_id",
+            "type": "number",
+            "title": {
+              "en": "Preset ID"
+            },
+            "example": 1
+          }
+        ]
+      },
+      {
+        "id": "previous_preset",
+        "title": {
+          "en": "Previous preset"
+        },
+        "titleFormatted": {
+          "en": "Switch to the previous preset"
+        },
+        "hint": {
+          "en": "Cycles backward through the presets saved on the device and wraps around at the start."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "preset",
+            "type": "string",
+            "title": {
+              "en": "Preset"
+            },
+            "example": {
+              "en": "Movie"
+            }
+          },
+          {
+            "name": "preset_id",
+            "type": "number",
+            "title": {
+              "en": "Preset ID"
+            },
+            "example": 1
+          }
+        ]
+      },
       {
         "id": "set_effect",
         "title": {
@@ -120,6 +388,183 @@
             }
           }
         ]
+      },
+      {
+        "id": "set_segment_brightness",
+        "title": {
+          "en": "Set brightness on a segment"
+        },
+        "titleFormatted": {
+          "en": "Set brightness of [[segment]] to [[brightness]]"
+        },
+        "hint": {
+          "en": "Sets the brightness of one segment only. This is separate from the overall brightness of the device."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "segment",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Segment"
+            }
+          },
+          {
+            "name": "brightness",
+            "type": "range",
+            "min": 0,
+            "max": 1,
+            "step": 0.01,
+            "value": 1,
+            "label": "%",
+            "labelMultiplier": 100,
+            "labelDecimals": 0
+          }
+        ]
+      },
+      {
+        "id": "set_segment_color",
+        "title": {
+          "en": "Set color on a segment"
+        },
+        "titleFormatted": {
+          "en": "Set color of [[segment]] to [[color]]"
+        },
+        "hint": {
+          "en": "Sets the color of one segment only, leaving the other segments untouched."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "segment",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Segment"
+            }
+          },
+          {
+            "name": "color",
+            "type": "color"
+          }
+        ]
+      },
+      {
+        "id": "set_segment_effect",
+        "title": {
+          "en": "Set effect on a segment"
+        },
+        "titleFormatted": {
+          "en": "Set effect of [[segment]] to [[effect]]"
+        },
+        "hint": {
+          "en": "Applies an effect to one segment only, leaving the other segments untouched."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "segment",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Segment"
+            }
+          },
+          {
+            "name": "effect",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Effect"
+            }
+          }
+        ]
+      },
+      {
+        "id": "set_segment_palette",
+        "title": {
+          "en": "Set palette on a segment"
+        },
+        "titleFormatted": {
+          "en": "Set palette of [[segment]] to [[palette]]"
+        },
+        "hint": {
+          "en": "Applies a color palette to one segment only, leaving the other segments untouched."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "segment",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Segment"
+            }
+          },
+          {
+            "name": "palette",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Palette"
+            }
+          }
+        ]
+      },
+      {
+        "id": "set_segment_power",
+        "title": {
+          "en": "Turn a segment on or off"
+        },
+        "titleFormatted": {
+          "en": "Turn [[segment]] [[state]]"
+        },
+        "hint": {
+          "en": "Turns a single segment on or off without affecting the rest of the device."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=wled"
+          },
+          {
+            "name": "segment",
+            "type": "autocomplete",
+            "placeholder": {
+              "en": "Segment"
+            }
+          },
+          {
+            "name": "state",
+            "type": "dropdown",
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "on"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "off"
+                }
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -136,6 +581,7 @@
         "light_hue",
         "light_saturation",
         "light_temperature",
+        "light_mode",
         "wled_effect",
         "wled_palette",
         "wled_preset"
@@ -205,7 +651,10 @@
               "label": {
                 "en": "IP Address"
               },
-              "value": "192.168.1.100"
+              "value": "192.168.1.100",
+              "hint": {
+                "en": "The IP address of the WLED device. This is kept up to date automatically when the device is discovered on the network."
+              }
             },
             {
               "id": "pollInterval",
@@ -215,7 +664,10 @@
               },
               "value": 5,
               "min": 1,
-              "max": 60
+              "max": 60,
+              "hint": {
+                "en": "How often Homey asks the device for its current state."
+              }
             }
           ]
         }
