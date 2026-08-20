@@ -1,0 +1,11 @@
+{
+  "id": "set_segment_color",
+  "title": { "en": "Set color on a segment" },
+  "titleFormatted": { "en": "Set color of [[segment]] to [[color]]" },
+  "hint": { "en": "Sets the color of one segment only, leaving the other segments untouched." },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=wled" },
+    { "name": "segment", "type": "autocomplete", "placeholder": { "en": "Segment" } },
+    { "name": "color", "type": "color" }
+  ]
+}

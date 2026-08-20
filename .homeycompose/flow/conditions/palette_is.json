@@ -1,0 +1,9 @@
+{
+  "id": "palette_is",
+  "title": { "en": "The palette !{{is|is not}}" },
+  "titleFormatted": { "en": "The palette !{{is|is not}} [[palette]]" },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=wled" },
+    { "name": "palette", "type": "autocomplete", "placeholder": { "en": "Palette" } }
+  ]
+}

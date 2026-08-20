@@ -1,0 +1,11 @@
+{
+  "id": "palette_changed",
+  "title": { "en": "The palette changed" },
+  "titleFormatted": { "en": "The palette changed" },
+  "hint": { "en": "Triggers whenever the color palette changes, also when it is changed from the WLED interface itself." },
+  "args": [ { "name": "device", "type": "device", "filter": "driver_id=wled" } ],
+  "tokens": [
+    { "name": "palette", "type": "string", "title": { "en": "Palette" }, "example": { "en": "Party" } },
+    { "name": "palette_id", "type": "number", "title": { "en": "Palette ID" }, "example": 6 }
+  ]
+}

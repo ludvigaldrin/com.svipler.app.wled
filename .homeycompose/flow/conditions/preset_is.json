@@ -1,0 +1,9 @@
+{
+  "id": "preset_is",
+  "title": { "en": "The preset !{{is|is not}}" },
+  "titleFormatted": { "en": "The preset !{{is|is not}} [[preset]]" },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=wled" },
+    { "name": "preset", "type": "autocomplete", "placeholder": { "en": "Preset" } }
+  ]
+}

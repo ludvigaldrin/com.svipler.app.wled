@@ -1,0 +1,11 @@
+{
+  "id": "preset_changed",
+  "title": { "en": "The preset changed" },
+  "titleFormatted": { "en": "The preset changed" },
+  "hint": { "en": "Triggers whenever a preset is activated, also when it is activated from the WLED interface itself." },
+  "args": [ { "name": "device", "type": "device", "filter": "driver_id=wled" } ],
+  "tokens": [
+    { "name": "preset", "type": "string", "title": { "en": "Preset" }, "example": { "en": "Movie" } },
+    { "name": "preset_id", "type": "number", "title": { "en": "Preset ID" }, "example": 1 }
+  ]
+}

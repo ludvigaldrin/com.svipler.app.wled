@@ -1,0 +1,11 @@
+{
+  "id": "set_segment_effect",
+  "title": { "en": "Set effect on a segment" },
+  "titleFormatted": { "en": "Set effect of [[segment]] to [[effect]]" },
+  "hint": { "en": "Applies an effect to one segment only, leaving the other segments untouched." },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=wled" },
+    { "name": "segment", "type": "autocomplete", "placeholder": { "en": "Segment" } },
+    { "name": "effect", "type": "autocomplete", "placeholder": { "en": "Effect" } }
+  ]
+}

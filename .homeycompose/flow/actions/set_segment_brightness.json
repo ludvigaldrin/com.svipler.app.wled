@@ -1,0 +1,11 @@
+{
+  "id": "set_segment_brightness",
+  "title": { "en": "Set brightness on a segment" },
+  "titleFormatted": { "en": "Set brightness of [[segment]] to [[brightness]]" },
+  "hint": { "en": "Sets the brightness of one segment only. This is separate from the overall brightness of the device." },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=wled" },
+    { "name": "segment", "type": "autocomplete", "placeholder": { "en": "Segment" } },
+    { "name": "brightness", "type": "range", "min": 0, "max": 1, "step": 0.01, "value": 1, "label": "%", "labelMultiplier": 100, "labelDecimals": 0 }
+  ]
+}

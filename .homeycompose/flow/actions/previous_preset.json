@@ -1,0 +1,11 @@
+{
+  "id": "previous_preset",
+  "title": { "en": "Previous preset" },
+  "titleFormatted": { "en": "Switch to the previous preset" },
+  "hint": { "en": "Cycles backward through the presets saved on the device and wraps around at the start." },
+  "args": [ { "name": "device", "type": "device", "filter": "driver_id=wled" } ],
+  "tokens": [
+    { "name": "preset", "type": "string", "title": { "en": "Preset" }, "example": { "en": "Movie" } },
+    { "name": "preset_id", "type": "number", "title": { "en": "Preset ID" }, "example": 1 }
+  ]
+}

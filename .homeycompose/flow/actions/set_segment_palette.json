@@ -1,0 +1,11 @@
+{
+  "id": "set_segment_palette",
+  "title": { "en": "Set palette on a segment" },
+  "titleFormatted": { "en": "Set palette of [[segment]] to [[palette]]" },
+  "hint": { "en": "Applies a color palette to one segment only, leaving the other segments untouched." },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=wled" },
+    { "name": "segment", "type": "autocomplete", "placeholder": { "en": "Segment" } },
+    { "name": "palette", "type": "autocomplete", "placeholder": { "en": "Palette" } }
+  ]
+}

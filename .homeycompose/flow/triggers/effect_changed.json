@@ -1,0 +1,11 @@
+{
+  "id": "effect_changed",
+  "title": { "en": "The effect changed" },
+  "titleFormatted": { "en": "The effect changed" },
+  "hint": { "en": "Triggers whenever the effect changes, also when it is changed from the WLED interface itself." },
+  "args": [ { "name": "device", "type": "device", "filter": "driver_id=wled" } ],
+  "tokens": [
+    { "name": "effect", "type": "string", "title": { "en": "Effect" }, "example": { "en": "Rainbow" } },
+    { "name": "effect_id", "type": "number", "title": { "en": "Effect ID" }, "example": 9 }
+  ]
+}
